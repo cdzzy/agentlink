@@ -34,6 +34,22 @@ from agentlink.runtime.node import AgentNode
 from agentlink.runtime.bus import AgentBus
 from agentlink.runtime.registry import AgentRegistry
 
+# MCP Adapter (optional dependency)
+try:
+    from agentlink.adapters.mcp import (
+        MCPAdapter,
+        MCPAgentNodeMixin,
+        MCPTool,
+        MCPResource,
+        create_mcp_bridge,
+        MCPError,
+        MCPConnectionError,
+        MCPToolError,
+    )
+    _mcp_available = True
+except ImportError:
+    _mcp_available = False
+
 __version__ = "0.1.0"
 __all__ = [
     "AgentMessage",
@@ -46,3 +62,16 @@ __all__ = [
     "AgentBus",
     "AgentRegistry",
 ]
+
+# Add MCP exports if available
+if _mcp_available:
+    __all__.extend([
+        "MCPAdapter",
+        "MCPAgentNodeMixin",
+        "MCPTool",
+        "MCPResource",
+        "create_mcp_bridge",
+        "MCPError",
+        "MCPConnectionError",
+        "MCPToolError",
+    ])
