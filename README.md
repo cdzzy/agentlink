@@ -232,6 +232,25 @@ node = CrewAIAdapter(
 bus.register(node)
 ```
 
+#### A2A Protocol:
+
+```python
+from agentlink.adapters.a2a_adapter import A2AAdapter, A2AServerAdapter
+
+# Connect to a remote A2A agent
+node = A2AAdapter(
+    agent_url="http://analyst-agent:8000",
+    agent_id="remote-analyst",
+    capabilities=["data-analysis"],
+).as_node()
+
+bus.register(node)
+
+# Expose your node as an A2A server (publishes Agent Card at /.well-known/agent.json)
+server = A2AServerAdapter(node=my_node, host="0.0.0.0", port=8000)
+# await server.start()
+```
+
 #### Any Python Callable
 
 ```python
@@ -351,7 +370,9 @@ MCP solves "model → tool". AgentLink solves "agent → agent".
 
 ## Roadmap
 
-- [ ] Async support (`async def` handlers)
+- [x] Async support (`async def` handlers) ✅ (examples/05_async_streaming.py)
+- [x] **MCP Hub** (multi-server coordination) ✅ (agentlink/extensions/mcp_hub.py)
+- [x] **A2A Protocol adapter** (Google's Agent-to-Agent protocol — server & client, inspired by a2a-protocol.org) ✅ (agentlink/adapters/a2a_adapter.py)
 - [ ] Network transport (WebSocket, gRPC, Redis pub/sub)
 - [ ] AgentLink Hub (distributed registry)
 - [ ] Message signing & verification (trust between agents)
