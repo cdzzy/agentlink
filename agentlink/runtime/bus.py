@@ -1,4 +1,4 @@
-"""
+﻿"""
 AgentBus — the message routing backbone of AgentLink.
 
 The bus is the central switchboard. Agents register here,
@@ -19,7 +19,8 @@ import logging
 import threading
 import time
 import uuid
-from typing import Any, Callable, Dict, List, Optional, Union
+from collections import deque
+from typing import Any, Callable, Deque, Dict, List, Optional, Union
 
 from agentlink.protocol.message import AgentAddress, AgentMessage, MessageType
 from agentlink.protocol.routing import RoutingStrategy
@@ -73,10 +74,9 @@ class AgentBus:
         # Middleware chain
         self._middleware: List[Callable] = []
 
-        # Message log (ring buffer, last 1000)
-        self._message_log: List[Dict] = []
+        # Message log (deque with auto-truncate at 1000)
+        self._message_log: Deque[Dict] = deque(maxlen=1000)
         self._log_lock = threading.Lock()
-        self._log_max = 1000
 
         # Stats
         self._stats = {
@@ -288,8 +288,7 @@ class AgentBus:
                 "at": time.time(),
             }
             self._message_log.append(entry)
-            if len(self._message_log) > self._log_max:
-                self._message_log.pop(0)
+            # deque with maxlen=1000 auto-truncates when full
 
     @property
     def message_log(self) -> List[Dict]:
@@ -318,3 +317,4 @@ class AgentBus:
 
     def __repr__(self) -> str:
         return f"AgentBus(name={self.name!r}, agents={len(self.registry)})"
+
