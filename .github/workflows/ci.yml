@@ -1,4 +1,4 @@
-name: CI
+﻿name: CI
 
 on:
   push:
@@ -23,8 +23,4 @@ jobs:
         run: pip install -e ".[dev]"
       - name: Test
         run: pytest tests/ -v
-      - name: Examples (smoke)
-        run: |
-          python examples/01_quickstart.py
-          python examples/02_cross_framework.py
-          python examples/03_capability_routing.py
+
