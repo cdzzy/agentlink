@@ -35,6 +35,7 @@ Reference: OpenMantis multi-platform adapter (2026-04-18 AI Trending)
 from __future__ import annotations
 
 import hashlib
+import hmac
 import time
 import xml.etree.ElementTree as ET
 from typing import Any, Dict, Optional
@@ -110,7 +111,7 @@ class WeComAdapter(BaseAdapter):
         """Verify WeCom message signature."""
         arr = sorted([self._token, timestamp, nonce, encrypt])
         sha = hashlib.sha1("".join(arr).encode()).hexdigest()
-        return hmac.compare_digest(sha, msg_signature) if __import__("hmac") else sha == msg_signature
+        return hmac.compare_digest(sha, msg_signature)
 
     def verify(self, msg_signature: str, timestamp: str, nonce: str, echostr: str) -> str:
         """Handle GET verification request — return echostr if signature valid."""
@@ -203,5 +204,6 @@ class WeComAdapter(BaseAdapter):
         )
 
 
-# ── tiny compat shim ──────────────────────────────────────────────────────────
-import hmac as _hmac  # noqa: E402  (needed above for compare_digest)
+
+
+
