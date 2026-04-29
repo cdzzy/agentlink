@@ -1,0 +1,75 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentlink"
+version = "0.1.0"
+description = "The inter-agent communication protocol. Like HTTP for web services, but for AI agents."
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "cdzzy", email = "cdzzy@users.noreply.github.com"},
+]
+keywords = [
+    "ai", "agent", "protocol", "multi-agent", "communication",
+    "langchain", "langgraph", "autogen", "crewai", "llm", "mcp"
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.9"
+dependencies = []   # zero runtime dependencies for core
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "black",
+    "ruff",
+    "mypy",
+]
+langchain = [
+    "langchain-core>=0.1.0",
+    "langgraph>=0.1.0",
+]
+autogen = [
+    "pyautogen>=0.2.0",
+]
+crewai = [
+    "crewai>=0.30.0",
+]
+all = [
+    "langchain-core>=0.1.0",
+    "langgraph>=0.1.0",
+    "pyautogen>=0.2.0",
+    "crewai>=0.30.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/cdzzy/agentlink"
+Repository = "https://github.com/cdzzy/agentlink"
+Issues = "https://github.com/cdzzy/agentlink/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["agentlink*"]
+
+[tool.black]
+line-length = 100
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I"]
+
+[tool.mypy]
+python_version = "3.9"
+ignore_missing_imports = true
