@@ -206,7 +206,7 @@ class TestFastMCPServerDecorator:
 
         # fn is still the original coroutine
         import asyncio
-        result = asyncio.get_event_loop().run_until_complete(fn("hello"))
+        result = asyncio.run(fn("hello"))
         assert result == "HELLO"
 
     def test_multiple_tools(self):
