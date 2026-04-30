@@ -76,30 +76,107 @@ class MCPResource:
     description: Optional[str] = None
 
 
-@dataclass
 class ToolResult:
-    """Result of a tool call."""
-    content: list[Any] = field(default_factory=list)
-    is_error: bool = False
+    """Result of a tool call.
+
+    Provides both a data attribute and factory class-methods with the same
+    ``content`` name by using a regular (non-dataclass) class.
+
+    Factory usage::
+
+        r = ToolResult.content([{"type": "text", "text": "ok"}])
+        r = ToolResult.error("Something went wrong")
+
+    Direct construction (also supported for backward compat)::
+
+        r = ToolResult(content=[...], is_error=False)
+    """
+
+    def __init__(
+        self,
+        content: "list[Any] | None" = None,
+        is_error: bool = False,
+        # Alias used internally (fastmcp_adapter uses items=)
+        items: "list[Any] | None" = None,
+    ) -> None:
+        # Accept either `content=` or `items=` kwarg; content takes priority
+        self._content: list[Any] = content if content is not None else (items or [])
+        self.is_error = is_error
+
+    # ── Public data attribute ────────────────────────────────────
+
+    @property
+    def content(self) -> "list[Any]":  # type: ignore[override]
+        """The list of content items (wire format)."""
+        return self._content
+
+    @content.setter
+    def content(self, value: "list[Any]") -> None:
+        self._content = value
+
+    # Alias kept for internal code in fastmcp_adapter that uses .items
+    @property
+    def items(self) -> "list[Any]":
+        return self._content
+
+    # ── Factory class-methods ────────────────────────────────────
 
     @classmethod
-    def content(cls, data: list) -> ToolResult:
+    def make(cls, data: list) -> "ToolResult":
+        """Create a successful ToolResult from a list of content items."""
         return cls(content=data, is_error=False)
 
     @classmethod
-    def error(cls, message: str) -> ToolResult:
+    def error(cls, message: str) -> "ToolResult":
+        """Create an error ToolResult with a text message."""
         return cls(content=[{"type": "text", "text": message}], is_error=True)
+
+    # ── Serialisation ────────────────────────────────────────────
 
     def to_dict(self) -> dict:
         return {
-            "content": self.content,
+            "content": self._content,
             "isError": self.is_error,
         }
 
     def __str__(self) -> str:
         if self.is_error:
-            return f"ToolError({self.content})"
-        return f"ToolResult({len(self.content)} items)"
+            return f"ToolError({self._content})"
+        return f"ToolResult({len(self._content)} items)"
+
+    def __repr__(self) -> str:
+        return f"ToolResult(content={self._content!r}, is_error={self.is_error})"
+
+    # ── Equality (useful in tests) ───────────────────────────────
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, ToolResult):
+            return NotImplemented
+        return self._content == other._content and self.is_error == other.is_error
+
+
+# Patch: ToolResult.content(data) as a class-method while .content on instances
+# remains the property above.  We cannot have both at the class level with the
+# same name, so we implement the factory via a descriptor shim.
+
+class _ContentDescriptor:
+    """
+    Descriptor that returns the instance property when accessed on an instance,
+    and acts as a class-method factory when called on the class.
+    """
+
+    def __get__(self, obj: "ToolResult | None", objtype: type) -> "Any":
+        if obj is None:
+            # Class-level access: return a factory callable
+            return lambda data: ToolResult(content=data, is_error=False)
+        # Instance-level access: return the content list
+        return obj._content
+
+    def __set__(self, obj: "ToolResult", value: "list[Any]") -> None:
+        obj._content = value
+
+
+ToolResult.content = _ContentDescriptor()  # type: ignore[assignment]
 
 
 # ─── JSON-RPC Types ────────────────────────────────────────────
@@ -685,24 +762,24 @@ def expose_bus_as_mcp(bus, server_name: str = "bus-mcp") -> MCPServerAdapter:
     server = MCPServerAdapter(server_name=server_name)
 
     async def mcp_ping(**kwargs):
-        return ToolResult.content([{"type": "text", "text": "pong"}])
+        return ToolResult.make([{"type": "text", "text": "pong"}])
 
     async def mcp_list_agents(**kwargs):
         if hasattr(bus, 'registry') and hasattr(bus.registry, 'summary'):
             summary = bus.registry.summary()
-            return ToolResult.content([{"type": "text", "text": json.dumps(summary)}])
-        return ToolResult.content([{"type": "text", "text": "[]"}])
+            return ToolResult.make([{"type": "text", "text": json.dumps(summary)}])
+        return ToolResult.make([{"type": "text", "text": "[]"}])
 
     async def mcp_bus_stats(**kwargs):
         if hasattr(bus, 'stats'):
-            return ToolResult.content([{"type": "text", "text": json.dumps(bus.stats)}])
-        return ToolResult.content([{"type": "text", "text": "{}"}])
+            return ToolResult.make([{"type": "text", "text": json.dumps(bus.stats)}])
+        return ToolResult.make([{"type": "text", "text": "{}"}])
 
     async def mcp_send(to_agent: str, message: str, **kwargs):
         if hasattr(bus, 'send'):
             try:
                 reply = bus.send(to_agent, message)
-                return ToolResult.content([{"type": "text", "text": str(reply)}])
+                return ToolResult.make([{"type": "text", "text": str(reply)}])
             except Exception as e:
                 return ToolResult.error(str(e))
         return ToolResult.error("Bus does not support send()")

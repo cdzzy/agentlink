@@ -46,6 +46,7 @@ try:
         MCPConnectionError,
         MCPToolError,
     )
+    from agentlink.adapters.fastmcp_adapter import FastMCPServer, fast_expose_bus
     _mcp_available = True
 except ImportError:
     _mcp_available = False
@@ -74,4 +75,6 @@ if _mcp_available:
         "MCPError",
         "MCPConnectionError",
         "MCPToolError",
+        "FastMCPServer",
+        "fast_expose_bus",
     ])

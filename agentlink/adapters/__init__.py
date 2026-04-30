@@ -21,6 +21,13 @@ from agentlink.adapters.a2a_adapter import (
     a2a_error,
 )
 
+# FastMCP-style decorator adapter (zero extra dependencies)
+try:
+    from agentlink.adapters.fastmcp_adapter import FastMCPServer, fast_expose_bus
+    _fastmcp_available = True
+except ImportError:
+    _fastmcp_available = False
+
 __all__ = [
     "BaseAdapter",
     "LangGraphAdapter",
@@ -36,3 +43,6 @@ __all__ = [
     "a2a_response",
     "a2a_error",
 ]
+
+if _fastmcp_available:
+    __all__.extend(["FastMCPServer", "fast_expose_bus"])
