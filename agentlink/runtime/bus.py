@@ -24,6 +24,8 @@ from typing import Any, Callable, Dict, List, Optional, Union
 from agentlink.protocol.message import AgentAddress, AgentMessage, MessageType
 from agentlink.protocol.routing import RoutingStrategy
 from agentlink.runtime.registry import AgentRegistry
+from agentlink.schemas import SchemaRegistry
+from agentlink.dlq import DeadLetterQueue, DeadLetter
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +64,13 @@ class AgentBus:
         bus.print_status()
     """
 
-    def __init__(self, name: str = "default-bus"):
+    def __init__(
+        self,
+        name: str = "default-bus",
+        dlq_enabled: bool = False,
+        max_retries: int = 3,
+        dlq_handler: Optional[Callable[[DeadLetter], Any]] = None,
+    ):
         self.name = name
         self.registry = AgentRegistry()
 
@@ -84,7 +92,17 @@ class AgentBus:
             "messages_delivered": 0,
             "messages_failed": 0,
             "broadcasts": 0,
+            "dead_lettered": 0,
         }
+
+        # Message schemas (Issue #1)
+        self.schemas = SchemaRegistry()
+
+        # Dead letter queue (Issue #2)
+        self.dlq = DeadLetterQueue(max_retries=max_retries, handler=dlq_handler)
+        self._dlq_enabled = dlq_enabled
+        self._max_retries = max_retries
+        self.dlq._bind_retry(self._retry_deadletter)
 
     # ── Registration ──────────────────────────────────────────────────────
 
@@ -118,6 +136,47 @@ class AgentBus:
             self.register(node)
         return self
 
+    # ── Message Schemas (Issue #1) ────────────────────────────────────────
+
+    def register_schema(self, name: str, schema_cls) -> "AgentBus":
+        """
+        Register a message schema for opt-in runtime validation.
+
+        Example:
+            from pydantic import BaseModel
+            from agentlink.schemas import MessageSchema
+
+            class TaskMessage(MessageSchema, BaseModel):
+                task_id: str
+
+            bus.register_schema("task", TaskMessage)
+
+        Args:
+            name: Logical message type name.
+            schema_cls: A MessageSchema subclass.
+
+        Returns:
+            self (for chaining).
+        """
+        self.schemas.register(name, schema_cls)
+        return self
+
+    def validate_message(self, name: str, content) -> Any:
+        """
+        Validate content against a registered schema.
+
+        Args:
+            name: The schema name.
+            content: The message payload to validate.
+
+        Returns:
+            The validated/coerced schema instance.
+
+        Raises:
+            ValueError: If no schema is registered under ``name``.
+        """
+        return self.schemas.validate(name, content)
+
     # ── Routing ───────────────────────────────────────────────────────────
 
     def _route(
@@ -143,6 +202,12 @@ class AgentBus:
         target_node = self._resolve_recipient(message.recipient, message)
         if target_node is None:
             self._stats["messages_failed"] += 1
+            if self._dlq_enabled:
+                self.dlq.record(
+                    message,
+                    f"No agent found for address: {message.recipient}",
+                    attempts=1,
+                )
             raise DeliveryError(
                 f"No agent found for address: {message.recipient}\n"
                 f"Registered agents: {[r.address_str for r in self.registry.all_agents()]}"
@@ -162,10 +227,39 @@ class AgentBus:
         reply = target_node._receive(message)
         self._stats["messages_delivered"] += 1
 
+        # Dead-letter retry: error replies are retried, then dead-lettered
+        if reply is not None and reply.type == MessageType.ERROR and self._dlq_enabled:
+            reply = self._retry_on_error(message, target_node, reply)
+
         if reply:
             self._log_message(reply, "reply")
 
         return reply
+
+    def _retry_on_error(
+        self,
+        message: AgentMessage,
+        target_node: Any,
+        first_error: AgentMessage,
+    ) -> Optional[AgentMessage]:
+        """Retry delivery on error replies, dead-lettering after max_retries."""
+        attempts = 1
+        reply: Optional[AgentMessage] = first_error
+        while attempts < self._max_retries:
+            attempts += 1
+            reply = target_node._receive(message)
+            if reply is None or reply.type != MessageType.ERROR:
+                return reply
+
+        error_str = str(reply.content) if reply else "no reply"
+        self.dlq.record(message, error_str, attempts=attempts)
+        self._stats["messages_failed"] += 1
+        self._stats["dead_lettered"] += 1
+        return reply
+
+    def _retry_deadletter(self, dead_letter: DeadLetter) -> Optional[AgentMessage]:
+        """Re-route a dead-lettered message (bound to the DLQ)."""
+        return self._route(dead_letter.message, timeout=30.0)
 
     def _resolve_recipient(self, address: AgentAddress, message: AgentMessage) -> Optional[Any]:
         """Resolve an AgentAddress to an actual AgentNode."""

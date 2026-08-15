@@ -26,6 +26,7 @@ from agentlink.adapters.mcp import (
     MCPAgentNodeMixin,
     create_mcp_bridge,
     expose_bus_as_mcp,
+    create_mcp_app,
     _agent_to_tool_name,
     _parse_tool_name,
     ToolResult,
@@ -268,7 +269,6 @@ class TestMCPHTTPServer:
     @pytest.mark.asyncio
     async def test_post_endpoint_accepts_json_rpc(self):
         app = create_mcp_app(MCPServerAdapter())
-        client = await test_utils.test_client(app, server_kwargs=None)
         payload = json.dumps({
             "jsonrpc": "2.0", "id": 1, "method": "initialize",
             "params": {
@@ -277,8 +277,9 @@ class TestMCPHTTPServer:
                 "clientInfo": {"name": "test-client", "version": "0.1.0"},
             },
         })
-        resp = await client.post("/", data=payload, headers={"Content-Type": "application/json"})
-        assert resp.status in (200, 202)
+        async with test_utils.TestClient(test_utils.TestServer(app)) as client:
+            resp = await client.post("/", data=payload, headers={"Content-Type": "application/json"})
+            assert resp.status in (200, 202)
 
 
 # ─── MCPAdapter (Client) Tests ──────────────────────────────────

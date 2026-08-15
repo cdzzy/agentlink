@@ -373,9 +373,13 @@ MCP solves "model → tool". AgentLink solves "agent → agent".
 - [x] Async support (`async def` handlers) ✅ (examples/05_async_streaming.py)
 - [x] **MCP Hub** (multi-server coordination) ✅ (agentlink/extensions/mcp_hub.py)
 - [x] **A2A Protocol adapter** (Google's Agent-to-Agent protocol — server & client, inspired by a2a-protocol.org) ✅ (agentlink/adapters/a2a_adapter.py)
-- [ ] Network transport (WebSocket, gRPC, Redis pub/sub)
+- [x] **Structured message schemas** (runtime validation) ✅ (agentlink/schemas.py, v0.2.0)
+- [x] **Dead letter queue** (failed message capture + retry) ✅ (agentlink/dlq.py, v0.2.0)
+- [x] **Message encryption** (Fernet/AES) ✅ (agentlink/security.py, v0.2.0)
+- [x] **WebSocket transport** (remote agent communication) ✅ (agentlink/transport.py, v0.2.0)
+- [x] **Protocol gateway** (multi-protocol routing) ✅ (agentlink/gateway.py, v0.2.0)
+- [ ] Network transport (gRPC, Redis pub/sub)
 - [ ] AgentLink Hub (distributed registry)
-- [ ] Message signing & verification (trust between agents)
 - [ ] OpenTelemetry tracing integration
 - [ ] Stream support for long-running tasks
 - [ ] CLI: `agentlink serve`, `agentlink send`, `agentlink status`

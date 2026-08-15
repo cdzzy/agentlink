@@ -33,6 +33,11 @@ from agentlink.protocol.capability import AgentCapability, CapabilitySet
 from agentlink.runtime.node import AgentNode
 from agentlink.runtime.bus import AgentBus
 from agentlink.runtime.registry import AgentRegistry
+from agentlink.schemas import MessageSchema, SchemaRegistry
+from agentlink.dlq import DeadLetterQueue, DeadLetter
+from agentlink.security import MessageEncryptor, generate_key, encrypt_message, decrypt_message
+from agentlink.gateway import ProtocolGateway
+from agentlink.transport import WSTransport, WSBridge, serialize_message, deserialize_message
 
 # MCP Adapter (optional dependency)
 try:
@@ -51,7 +56,7 @@ try:
 except ImportError:
     _mcp_available = False
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __all__ = [
     "AgentMessage",
     "MessageType",
@@ -62,6 +67,19 @@ __all__ = [
     "AgentNode",
     "AgentBus",
     "AgentRegistry",
+    "MessageSchema",
+    "SchemaRegistry",
+    "DeadLetterQueue",
+    "DeadLetter",
+    "MessageEncryptor",
+    "generate_key",
+    "encrypt_message",
+    "decrypt_message",
+    "ProtocolGateway",
+    "WSTransport",
+    "WSBridge",
+    "serialize_message",
+    "deserialize_message",
 ]
 
 # Add MCP exports if available

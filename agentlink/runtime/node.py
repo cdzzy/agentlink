@@ -156,6 +156,7 @@ class AgentNode:
         content: Any,
         msg_type: MessageType = MessageType.REQUEST,
         timeout: float = 30.0,
+        schema: Optional[str] = None,
         **kwargs,
     ) -> Optional[AgentMessage]:
         """
@@ -166,6 +167,8 @@ class AgentNode:
             content: Message payload (string or dict).
             msg_type: Type of message to send.
             timeout: Seconds to wait for a reply.
+            schema: Optional registered schema name to validate ``content``
+                    against before sending.
             **kwargs: Extra fields for AgentMessage.
 
         Returns:
@@ -180,6 +183,10 @@ class AgentNode:
                 f"Agent '{self.agent_id}' is not connected to a bus. "
                 "Call bus.register(node) first."
             )
+
+        if schema is not None:
+            # Validate content against the registered schema before sending
+            self._bus.validate_message(schema, content)
 
         if isinstance(recipient, str):
             # Support "agent_id@namespace" or just "agent_id"
