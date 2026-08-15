@@ -46,9 +46,9 @@ class MessageEncryptor:
     """
 
     def __init__(self, key: Optional[str] = None) -> None:
+        resolved = self._resolve_key(key)  # raises ValueError if no key is configured
         from cryptography.fernet import Fernet
 
-        resolved = self._resolve_key(key)
         self._fernet = Fernet(resolved)
 
     @staticmethod

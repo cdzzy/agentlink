@@ -22,6 +22,7 @@ from agentlink.dlq import DeadLetterQueue, DeadLetter
 from agentlink.gateway import ProtocolGateway
 
 try:
+    import cryptography  # noqa: F401
     from agentlink.security import MessageEncryptor, generate_key, encrypt_message, decrypt_message
     HAS_CRYPTO = True
 except ImportError:
