@@ -4,10 +4,10 @@ AgentLink - The inter-agent communication protocol.
 Like HTTP for web services, AgentLink is the missing protocol layer
 that lets agents built with different frameworks talk to each other.
 
-  LangGraph Agent  ──┐
-  AutoGen Agent    ──┼──► AgentLink Bus ──► Any Agent
-  CrewAI Agent     ──┘
-  Your Custom Agent ─┘
+  LangGraph Agent  ──�?
+  AutoGen Agent    ──┼──�?AgentLink Bus ──�?Any Agent
+  CrewAI Agent     ──�?
+  Your Custom Agent ─�?
 
 Usage:
     from agentlink import AgentNode, AgentBus, AgentMessage
@@ -38,6 +38,7 @@ from agentlink.dlq import DeadLetterQueue, DeadLetter
 from agentlink.security import MessageEncryptor, generate_key, encrypt_message, decrypt_message
 from agentlink.gateway import ProtocolGateway
 from agentlink.transport import WSTransport, WSBridge, serialize_message, deserialize_message
+from agentlink.runtime.stream import StreamResult, is_streamable, stream_message
 
 # MCP Adapter (optional dependency)
 try:
@@ -56,7 +57,7 @@ try:
 except ImportError:
     _mcp_available = False
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 __all__ = [
     "AgentMessage",
     "MessageType",
@@ -80,6 +81,9 @@ __all__ = [
     "WSBridge",
     "serialize_message",
     "deserialize_message",
+    "StreamResult",
+    "is_streamable",
+    "stream_message",
 ]
 
 # Add MCP exports if available

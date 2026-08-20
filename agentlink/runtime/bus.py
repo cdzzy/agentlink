@@ -236,6 +236,36 @@ class AgentBus:
 
         return reply
 
+    def _deliver_to_address(
+        self,
+        addr: AgentAddress,
+        msg_type: MessageType,
+        correlation_id: str,
+        content: Any,
+    ) -> None:
+        """Deliver a message to an address without waiting for a reply.
+
+        Used for streaming responses (STREAM_START/CHUNK/END) where the
+        original sender collects chunks rather than awaiting a single reply.
+        """
+        target = self._resolve_recipient(addr, AgentMessage(
+            type=msg_type,
+            sender=AgentAddress("system", "default"),
+            recipient=addr,
+            content=content,
+            correlation_id=correlation_id,
+        ))
+        if target is None:
+            return
+        msg = AgentMessage(
+            type=msg_type,
+            sender=AgentAddress("system", "default"),
+            recipient=addr,
+            content=content,
+            correlation_id=correlation_id,
+        )
+        target._receive(msg)
+
     def _retry_on_error(
         self,
         message: AgentMessage,

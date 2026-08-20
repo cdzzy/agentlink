@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agentlink"
-version = "0.2.0"
+version = "0.3.0"
 description = "The inter-agent communication protocol. Like HTTP for web services, but for AI agents."
 readme = "README.md"
 license = {text = "MIT"}

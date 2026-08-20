@@ -2,6 +2,12 @@
 
 All notable changes to AgentLink are documented in this file.
 
+## [0.3.0] - 2026-08-19
+
+### Added
+
+- **Streaming for long-running tasks**: handlers that return an iterable are automatically streamed back as `STREAM_START` / `STREAM_CHUNK` / `STREAM_END` messages. `AgentNode.stream()` returns a `StreamResult` that iterates chunks as they arrive and exposes `.collect()` for the joined text. Streams are correlated by request id so concurrent streams never interleave.
+
 ## [0.2.0] - 2026-08-15
 
 ### Added

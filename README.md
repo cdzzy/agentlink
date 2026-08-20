@@ -381,7 +381,7 @@ MCP solves "model → tool". AgentLink solves "agent → agent".
 - [ ] Network transport (gRPC, Redis pub/sub)
 - [ ] AgentLink Hub (distributed registry)
 - [ ] OpenTelemetry tracing integration
-- [ ] Stream support for long-running tasks
+- [x] **Stream support for long-running tasks** (STREAM_START/CHUNK/END; `node.stream()` + iterable handlers) ✅ (v0.3.0)
 - [ ] CLI: `agentlink serve`, `agentlink send`, `agentlink status`
 
 ---
