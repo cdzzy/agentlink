@@ -4,10 +4,10 @@ AgentLink - The inter-agent communication protocol.
 Like HTTP for web services, AgentLink is the missing protocol layer
 that lets agents built with different frameworks talk to each other.
 
-  LangGraph Agent  ──�?
-  AutoGen Agent    ──┼──�?AgentLink Bus ──�?Any Agent
-  CrewAI Agent     ──�?
-  Your Custom Agent ─�?
+  LangGraph Agent  ──┐
+  AutoGen Agent    ──┼──► AgentLink Bus ──► Any Agent
+  CrewAI Agent     ──┘
+  Your Custom Agent ─┘
 
 Usage:
     from agentlink import AgentNode, AgentBus, AgentMessage
