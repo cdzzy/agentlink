@@ -380,7 +380,7 @@ MCP solves "model → tool". AgentLink solves "agent → agent".
 - [x] **Protocol gateway** (multi-protocol routing) ✅ (agentlink/gateway.py, v0.2.0)
 - [x] **Long-term memory via [engram](https://github.com/cdzzy/engram)** (MCP bridge — routed messages land in engram, agents recall shared context) ✅ (v0.5.0)
 - [ ] Network transport (gRPC, Redis pub/sub)
-- [ ] AgentLink Hub (distributed registry)
+- [x] **AgentLink Hub** (distributed registry — HTTP announce/discover with heartbeat TTL) ✅ (v0.6.0)
 - [x] **OpenTelemetry tracing integration** (`instrument_bus` — in-memory recorder or your OTel tracer) ✅ (v0.4.0)
 - [x] **Stream support for long-running tasks** (STREAM_START/CHUNK/END; `node.stream()` + iterable handlers) ✅ (v0.3.0)
 - [ ] CLI: `agentlink serve`, `agentlink send`, `agentlink status`

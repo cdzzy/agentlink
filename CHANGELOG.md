@@ -2,6 +2,12 @@
 
 All notable changes to AgentLink are documented in this file.
 
+## [0.6.0] - 2026-09-04
+
+### Added
+
+- **AgentLink Hub — distributed registry** (`agentlink/hub.py`): zero-dependency HTTP registry where agents across processes/networks announce themselves and discover peers by capability. Heartbeat-based liveness (TTL expiry), token-authenticated registration, `HubServer` + `HubClient` (background heartbeat thread, context-manager lifecycle).
+
 ## [0.5.0] - 2026-09-04
 
 ### Added
