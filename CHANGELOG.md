@@ -2,6 +2,12 @@
 
 All notable changes to AgentLink are documented in this file.
 
+## [0.4.0] - 2026-08-27
+
+### Added
+
+- **OpenTelemetry-compatible tracing**: `instrument_bus(bus, service_name=, exporter=|tracer=)` wraps message routing with spans covering delivery and replies. Zero-dependency `InMemorySpanExporter` for tests/dashboards, or pass any `opentelemetry.trace.Tracer` to export through your OTel pipeline. Error spans recorded on delivery failures.
+
 ## [0.3.0] - 2026-08-19
 
 ### Added

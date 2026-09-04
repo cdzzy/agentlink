@@ -39,6 +39,7 @@ from agentlink.security import MessageEncryptor, generate_key, encrypt_message, 
 from agentlink.gateway import ProtocolGateway
 from agentlink.transport import WSTransport, WSBridge, serialize_message, deserialize_message
 from agentlink.runtime.stream import StreamResult, is_streamable, stream_message
+from agentlink.tracing import instrument_bus, InMemorySpanExporter, SpanRecord
 
 # MCP Adapter (optional dependency)
 try:
@@ -57,7 +58,7 @@ try:
 except ImportError:
     _mcp_available = False
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 __all__ = [
     "AgentMessage",
     "MessageType",
@@ -84,6 +85,9 @@ __all__ = [
     "StreamResult",
     "is_streamable",
     "stream_message",
+    "instrument_bus",
+    "InMemorySpanExporter",
+    "SpanRecord",
 ]
 
 # Add MCP exports if available
