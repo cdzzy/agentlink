@@ -2,6 +2,12 @@
 
 All notable changes to AgentLink are documented in this file.
 
+## [0.5.0] - 2026-09-04
+
+### Added
+
+- **Long-term memory via engram** (`agentlink/integrations/engram.py`): `attach_memory(bus)` records every routed message into [engram](https://github.com/cdzzy/engram) through its MCP stdio server (`engram-mcp`) — language-agnostic bridge with no hard coupling. `EngramMCPClient` exposes `store` / `recall` / `get` / `forget` / `stats`; `EngramMemoryBackend.recall_context()` retrieves shared context for prompting. Memory failures never break message routing.
+
 ## [0.4.0] - 2026-08-27
 
 ### Added

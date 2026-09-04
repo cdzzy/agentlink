@@ -39,6 +39,7 @@ from agentlink.security import MessageEncryptor, generate_key, encrypt_message, 
 from agentlink.gateway import ProtocolGateway
 from agentlink.transport import WSTransport, WSBridge, serialize_message, deserialize_message
 from agentlink.runtime.stream import StreamResult, is_streamable, stream_message
+from agentlink.integrations.engram import EngramMCPClient, EngramMemoryBackend, attach_memory, EngramMCPError
 from agentlink.tracing import instrument_bus, InMemorySpanExporter, SpanRecord
 
 # MCP Adapter (optional dependency)
@@ -58,7 +59,7 @@ try:
 except ImportError:
     _mcp_available = False
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 __all__ = [
     "AgentMessage",
     "MessageType",
@@ -88,6 +89,10 @@ __all__ = [
     "instrument_bus",
     "InMemorySpanExporter",
     "SpanRecord",
+    "EngramMCPClient",
+    "EngramMemoryBackend",
+    "attach_memory",
+    "EngramMCPError",
 ]
 
 # Add MCP exports if available
