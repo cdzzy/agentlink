@@ -1,5 +1,8 @@
 # agentlink 🔗
 
+> Part of the [Agent OS](https://github.com/cdzzy/agent-kernel/blob/main/docs/agent-os.md) suite — kernel · network · memory · policy · audit · testing
+
+
 **The inter-agent communication protocol.**
 
 Like HTTP is to web services, AgentLink is the missing protocol layer that lets AI agents built with **different frameworks** talk to each other.
