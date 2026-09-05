@@ -3,8 +3,8 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "agentlink"
-version = "0.3.0"
+name = "cdzzy-agentlink"
+version = "0.6.0"
 description = "The inter-agent communication protocol. Like HTTP for web services, but for AI agents."
 readme = "README.md"
 license = {text = "MIT"}

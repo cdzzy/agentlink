@@ -1,6 +1,7 @@
 # agentlink 🔗
 
 > Part of the [Agent OS](https://github.com/cdzzy/agent-kernel/blob/main/docs/agent-os.md) suite — kernel · network · memory · policy · audit · testing
+[![PyPI](https://img.shields.io/pypi/v/cdzzy-agentlink?color=blue)](https://pypi.org/project/cdzzy-agentlink/)
 
 
 **The inter-agent communication protocol.**
