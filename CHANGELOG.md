@@ -2,6 +2,22 @@
 
 All notable changes to AgentLink are documented in this file.
 
+## [0.7.0] - 2026-09-20
+
+### Added
+
+- **A2A v1.0 compatibility layer** (`agentlink.a2a`): bridge AgentLink agents to the Agent2Agent protocol v1.0 without leaving the bus — `AgentCard` generation/parsing for the `/.well-known/agent-card.json` discovery document, lossless `AgentMessage ⇄ A2A Message/Task/Artifact` mapping (the original envelope rides in `metadata["agentlink.envelope"]`), and an `A2ATransport` JSON-RPC 2.0 client. Card signing/verification (`sign_agent_card` / `verify_agent_card`, detached JWS + JWKS) lives behind the optional `pip install agentlink[a2a]` extra; everything else is stdlib-only.
+- **A2A HTTP adapter** (`adapters/a2a_adapter.py`): expose a running node over A2A, or call remote A2A agents from the bus.
+- **Release automation** (`.github/workflows/release.yml`): PyPI publish on `v*` tags, guarded on `PYPI_API_TOKEN`.
+
+### Changed
+
+- CI: dedicated ruff lint job (132 findings fixed across adapters/runtime/tests) and a 3.9–3.13 test matrix with fail-fast off.
+
+### Fixed
+
+- JWKS key selection during card verification now probes every published key when the JWS header omits `kid`, instead of failing with "No JWKS key matches kid None".
+
 ## [0.6.0] - 2026-09-04
 
 ### Added

@@ -2,6 +2,7 @@
 
 > Part of the [Agent OS](https://github.com/cdzzy/agent-kernel/blob/main/docs/agent-os.md) suite — kernel · network · memory · policy · audit · testing
 [![PyPI](https://img.shields.io/pypi/v/cdzzy-agentlink?color=blue)](https://pypi.org/project/cdzzy-agentlink/)
+[![CI](https://github.com/cdzzy/agentlink/actions/workflows/ci.yml/badge.svg)](https://github.com/cdzzy/agentlink/actions/workflows/ci.yml)
 
 
 **The inter-agent communication protocol.**
@@ -313,6 +314,58 @@ json.dumps(envelope.to_dict())
 
 ---
 
+## A2A v1.0 Compatibility
+
+`agentlink.a2a` bridges AgentLink agents to the [A2A (Agent2Agent) protocol v1.0](https://a2a-protocol.org): publish a standard Agent Card, talk to any A2A agent over JSON-RPC, and verify signed inbound cards — without giving up the lossless AgentLink envelope.
+
+```bash
+pip install "cdzzy-agentlink[a2a]"   # only needed for card signing/verification (pyjwt + cryptography)
+```
+
+The card/mapping/transport modules are stdlib-only; only signing & verification need the optional `[a2a]` extra.
+
+### Agent Card — `/.well-known/agent-card.json`
+
+```python
+from agentlink import AgentCard, AgentSkill, agent_card_url
+
+card = AgentCard(
+    name="research-agent",
+    description="Finds and summarizes AI research",
+    version="1.0.0",
+    skills=[AgentSkill(id="research", name="Research", description="Deep research")],
+)
+card.url = "http://localhost:8000"        # convenience → supportedInterfaces[0].url
+card.capabilities.streaming = True
+
+card.to_json()                            # serve at agent_card_url("http://localhost:8000")
+AgentCard.from_json(card.to_json())       # parse it back — lossless, unknown fields preserved
+```
+
+### Lossless `AgentMessage` ⇄ A2A task/artifact mapping
+
+```python
+from agentlink import A2ATransport
+
+transport = A2ATransport("http://localhost:8000")     # or A2ATransport.from_card(card)
+reply = transport.send(msg)                           # AgentMessage → JSON-RPC SendMessage → AgentMessage
+```
+
+The full AgentLink envelope (capability, ttl, correlation_id, nested metadata, ...) rides in A2A `metadata["agentlink.envelope"]`, so `send`/`receive` round-trips are lossless. A2A-only features (task state, artifacts, `taskId`/`contextId`) map onto the envelope and back.
+
+### Signed Agent Cards (JWKS / detached JWS)
+
+```python
+from agentlink import A2AVerificationError, generate_signing_key, sign_agent_card, verify_agent_card
+
+private_pem, jwks = generate_signing_key("ES256")     # also "RS256" / "EdDSA"
+sign_agent_card(card, private_pem)                    # attaches a detached-JWS signatures block
+
+verify_agent_card(fetched_card, jwks)                 # True — any tampering raises A2AVerificationError
+```
+
+---
+
 ## Multi-Framework Example
 
 ```python
@@ -385,6 +438,7 @@ MCP solves "model → tool". AgentLink solves "agent → agent".
 - [x] **Long-term memory via [engram](https://github.com/cdzzy/engram)** (MCP bridge — routed messages land in engram, agents recall shared context) ✅ (v0.5.0)
 - [ ] Network transport (gRPC, Redis pub/sub)
 - [x] **AgentLink Hub** (distributed registry — HTTP announce/discover with heartbeat TTL) ✅ (v0.6.0)
+- [x] **A2A v1.0 compatibility layer** (Agent Card `/.well-known/agent-card.json`, lossless AgentMessage ⇄ task/artifact mapping via `A2ATransport`, JWKS card signature verification) ✅ (agentlink/a2a/)
 - [x] **OpenTelemetry tracing integration** (`instrument_bus` — in-memory recorder or your OTel tracer) ✅ (v0.4.0)
 - [x] **Stream support for long-running tasks** (STREAM_START/CHUNK/END; `node.stream()` + iterable handlers) ✅ (v0.3.0)
 - [ ] CLI: `agentlink serve`, `agentlink send`, `agentlink status`

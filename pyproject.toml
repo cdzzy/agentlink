@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cdzzy-agentlink"
-version = "0.6.0"
+version = "0.7.0"
 description = "The inter-agent communication protocol. Like HTTP for web services, but for AI agents."
 readme = "README.md"
 license = {text = "MIT"}
@@ -38,6 +38,7 @@ dev = [
     "ruff",
     "mypy",
     "cryptography>=41.0",
+    "pyjwt>=2.8",
     "websockets>=12.0",
 ]
 langchain = [
@@ -56,6 +57,10 @@ websocket = [
 security = [
     "cryptography>=41.0",
 ]
+a2a = [
+    "pyjwt>=2.8",
+    "cryptography>=41.0",
+]
 all = [
     "langchain-core>=0.1.0",
     "langgraph>=0.1.0",
@@ -63,6 +68,7 @@ all = [
     "crewai>=0.30.0",
     "websockets>=12.0",
     "cryptography>=41.0",
+    "pyjwt>=2.8",
 ]
 
 [project.urls]
@@ -79,6 +85,8 @@ line-length = 100
 
 [tool.ruff]
 line-length = 100
+
+[tool.ruff.lint]
 select = ["E", "F", "I"]
 
 [tool.mypy]

@@ -15,7 +15,6 @@ import sys
 def main() -> None:
     memories = {}  # id -> memory dict
     counter = {"n": 0}
-    started = False
 
     for line in sys.stdin:
         line = line.strip()
@@ -31,7 +30,6 @@ def main() -> None:
             sys.stdout.flush()
 
         if method == "initialize":
-            started = True
             send({
                 "protocolVersion": params.get("protocolVersion", "2024-11-05"),
                 "capabilities": {"tools": {}},
@@ -41,7 +39,8 @@ def main() -> None:
             pass  # notification — no response
         elif method == "tools/list":
             send({"tools": [{"name": "engram_store"}, {"name": "engram_recall"},
-                            {"name": "engram_get"}, {"name": "engram_forget"}, {"name": "engram_stats"}]})
+                            {"name": "engram_get"}, {"name": "engram_forget"},
+                            {"name": "engram_stats"}]})
         elif method == "tools/call":
             name = params.get("name", "")
             args = params.get("arguments") or {}
@@ -73,14 +72,17 @@ def main() -> None:
                 if mem:
                     send({"content": [{"type": "text", "text": json.dumps(mem)}]})
                 else:
-                    send({"content": [{"type": "text", "text": json.dumps({"error": "not found"})}]})
+                    not_found = json.dumps({"error": "not found"})
+                    send({"content": [{"type": "text", "text": not_found}]})
             elif name == "engram_forget":
                 removed = memories.pop(args.get("id", ""), None)
-                send({"content": [{"type": "text", "text": json.dumps({"deleted": bool(removed)})}]})
+                deleted = json.dumps({"deleted": bool(removed)})
+                send({"content": [{"type": "text", "text": deleted}]})
             elif name == "engram_stats":
                 send({"content": [{"type": "text", "text": json.dumps({"total": len(memories)})}]})
             else:
-                send({"content": [{"type": "text", "text": json.dumps({"isError": True, "detail": f"unknown tool {name}"})}], "isError": True})
+                detail = json.dumps({"isError": True, "detail": f"unknown tool {name}"})
+                send({"content": [{"type": "text", "text": detail}], "isError": True})
         elif msg_id is not None:
             send({"error": {"code": -32601, "message": f"Method not found: {method}"}})
 

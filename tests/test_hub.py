@@ -4,8 +4,6 @@ Tests for the AgentLink Hub — distributed registry (v0.6.0).
 
 import time
 
-import pytest
-
 from agentlink.hub import HubClient, HubRegistry, HubServer
 
 
@@ -74,7 +72,9 @@ class TestHubServerAndClient:
                 assert peers[0]["agent_id"] == "researcher"
 
                 # other agents can see it too
-                other = HubClient(hub_url=hub.url, agent_id="writer", heartbeat_interval=False).register()
+                other = HubClient(
+                    hub_url=hub.url, agent_id="writer", heartbeat_interval=False
+                ).register()
                 try:
                     assert other.discover(capabilities=["web-search"])[0]["endpoint"] == "http://me:1"
                 finally:
@@ -102,7 +102,9 @@ class TestHubServerAndClient:
     def test_background_heartbeat_keeps_alive(self):
         with HubServer(ttl_seconds=0.5) as hub:
             # heartbeat every 0.15s keeps the registration alive past the TTL
-            client = HubClient(hub_url=hub.url, agent_id="a", ttl_seconds=0.5, heartbeat_interval=0.15).start()
+            client = HubClient(
+                hub_url=hub.url, agent_id="a", ttl_seconds=0.5, heartbeat_interval=0.15
+            ).start()
             try:
                 time.sleep(1.2)  # > 2 TTLs
                 assert hub.registry.get("a") is not None
@@ -114,8 +116,12 @@ class TestHubServerAndClient:
 
     def test_multiple_registrations_listing(self):
         with HubServer(ttl_seconds=30) as hub:
-            c1 = HubClient(hub_url=hub.url, agent_id="a", capabilities=["x"], heartbeat_interval=False).register()
-            c2 = HubClient(hub_url=hub.url, agent_id="b", capabilities=["y"], heartbeat_interval=False).register()
+            c1 = HubClient(
+                hub_url=hub.url, agent_id="a", capabilities=["x"], heartbeat_interval=False
+            ).register()
+            c2 = HubClient(
+                hub_url=hub.url, agent_id="b", capabilities=["y"], heartbeat_interval=False
+            ).register()
             try:
                 agents = HubClient(hub_url=hub.url, agent_id="observer").agents()
                 assert {a["agent_id"] for a in agents} == {"a", "b"}

@@ -24,11 +24,10 @@ Usage (client)::
 
 from __future__ import annotations
 
-import asyncio
 import json
 from typing import Any, Callable, Dict, Optional
 
-from agentlink.protocol.message import AgentMessage, AgentAddress, MessageType
+from agentlink.protocol.message import AgentMessage, MessageType
 
 
 def serialize_message(message: AgentMessage) -> Dict[str, Any]:

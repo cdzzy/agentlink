@@ -5,7 +5,9 @@ Runs against a fake engram-mcp stdio server (pure Python, no Node needed)
 that implements the same JSON-RPC wire protocol as the real `engram-mcp`.
 """
 
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -17,8 +19,8 @@ from agentlink.integrations.engram import (
     EngramMemoryBackend,
     attach_memory,
 )
-from agentlink.runtime.node import AgentNode
 from agentlink.runtime.bus import AgentBus
+from agentlink.runtime.node import AgentNode
 
 FAKE_SERVER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fake_engram_mcp.py")
 
@@ -68,7 +70,7 @@ class TestEngramMCPClient:
 class TestMemoryBackend:
 
     def test_record_message_stores_episodic_memory(self, client):
-        from agentlink.protocol.message import AgentMessage, MessageType, AgentAddress
+        from agentlink.protocol.message import AgentAddress, AgentMessage, MessageType
 
         backend = EngramMemoryBackend(client, namespace="fleet")
         msg = AgentMessage(
@@ -91,7 +93,7 @@ class TestMemoryBackend:
     def test_record_failure_never_raises(self, client):
         backend = EngramMemoryBackend(client)
         client.stop()  # server gone
-        from agentlink.protocol.message import AgentMessage, MessageType, AgentAddress
+        from agentlink.protocol.message import AgentAddress, AgentMessage, MessageType
         msg = AgentMessage(type=MessageType.REQUEST, sender=AgentAddress("a"),
                            recipient=AgentAddress("b"), content="x")
         assert backend.record_message(msg) is None  # swallowed
@@ -112,7 +114,7 @@ class TestBusIntegration:
     def test_middleware_passes_message_through(self, client):
         bus = AgentBus()
         bus.register(AgentNode("worker", handler=lambda m: "fine"))
-        backend = attach_memory(bus, client=client)
+        attach_memory(bus, client=client)
 
         reply = bus.send("client", "worker", "check")
         assert reply is not None

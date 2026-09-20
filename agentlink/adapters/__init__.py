@@ -6,24 +6,24 @@ handling the translation between AgentLink messages and the framework's
 native input/output format.
 """
 
-from agentlink.adapters.base import BaseAdapter
-from agentlink.adapters.langgraph_adapter import LangGraphAdapter
-from agentlink.adapters.autogen_adapter import AutoGenAdapter
-from agentlink.adapters.crewai_adapter import CrewAIAdapter
-from agentlink.adapters.generic import GenericAdapter
 from agentlink.adapters.a2a_adapter import (
     A2AAdapter,
-    A2AServerAdapter,
     A2AAgentCard,
+    A2AServerAdapter,
     A2ATask,
+    a2a_error,
     a2a_request,
     a2a_response,
-    a2a_error,
 )
+from agentlink.adapters.autogen_adapter import AutoGenAdapter
+from agentlink.adapters.base import BaseAdapter
+from agentlink.adapters.crewai_adapter import CrewAIAdapter
+from agentlink.adapters.generic import GenericAdapter
+from agentlink.adapters.langgraph_adapter import LangGraphAdapter
 
 # FastMCP-style decorator adapter (zero extra dependencies)
 try:
-    from agentlink.adapters.fastmcp_adapter import FastMCPServer, fast_expose_bus
+    from agentlink.adapters.fastmcp_adapter import FastMCPServer, fast_expose_bus  # noqa: F401
     _fastmcp_available = True
 except ImportError:
     _fastmcp_available = False

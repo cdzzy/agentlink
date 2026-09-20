@@ -27,11 +27,9 @@ from __future__ import annotations
 
 import json
 import uuid
-import asyncio
-from typing import Any, Optional, Callable, Awaitable
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass
 from enum import IntEnum
-
+from typing import Any, Awaitable, Callable, Optional
 
 # ─── Exceptions ────────────────────────────────────────────────
 
@@ -308,7 +306,6 @@ class MCPServerAdapter:
     async def _handle_initialize(self, params: dict) -> dict:
         """Handle the initialize request — negotiate protocol version."""
         client_version = params.get("protocolVersion", "2025-11-25")
-        client_info = params.get("clientInfo", {})
         # Use the lower of client/server version (simplified)
         negotiated_version = min(client_version, self.protocol_version)
         self._ensure_session()
@@ -502,7 +499,6 @@ class MCPServerAdapter:
         self._resource_registry[uri] = {
             "name": name,
             "mimeType": mime_type,
-            "mimeType": mime_type,
             "contents": contents,
             "description": description or "",
         }
@@ -570,8 +566,8 @@ class MCPAdapter:
 
     def _http_request(self, method: str, path: str, data: Optional[dict] = None) -> dict:
         """Make HTTP request to MCP server using urllib (synchronous)."""
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         url = f"{self.server_url}{path}"
         headers = {"Content-Type": "application/json"}
@@ -757,7 +753,6 @@ def expose_bus_as_mcp(bus, server_name: str = "bus-mcp") -> MCPServerAdapter:
     Returns:
         Configured MCPServerAdapter
     """
-    import asyncio as _asyncio
 
     server = MCPServerAdapter(server_name=server_name)
 

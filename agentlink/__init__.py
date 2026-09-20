@@ -23,44 +23,77 @@ Usage:
     reply = node.send("other-agent", "What is 2+2?")
 """
 
-from agentlink.protocol.message import (
-    AgentMessage,
-    MessageType,
-    MessageEnvelope,
-    AgentAddress,
+from agentlink.a2a import (
+    A2A_PROTOCOL_VERSION,
+    ENVELOPE_METADATA_KEY,
+    A2ATransport,
+    A2ATransportError,
+    AgentCapabilities,
+    AgentCard,
+    AgentInterface,
+    AgentSkill,
+    a2a_message_to_agent_message,
+    a2a_task_to_agent_message,
+    agent_card_url,
+    agent_message_to_a2a_message,
+    agent_message_to_a2a_task,
+)
+from agentlink.a2a.card import AGENT_CARD_WELLKNOWN_PATH
+from agentlink.dlq import DeadLetter, DeadLetterQueue
+from agentlink.gateway import ProtocolGateway
+from agentlink.hub import HubClient, HubRegistry, HubServer
+from agentlink.integrations.engram import (
+    EngramMCPClient,
+    EngramMCPError,
+    EngramMemoryBackend,
+    attach_memory,
 )
 from agentlink.protocol.capability import AgentCapability, CapabilitySet
-from agentlink.runtime.node import AgentNode
+from agentlink.protocol.message import (
+    AgentAddress,
+    AgentMessage,
+    MessageEnvelope,
+    MessageType,
+)
 from agentlink.runtime.bus import AgentBus
+from agentlink.runtime.node import AgentNode
 from agentlink.runtime.registry import AgentRegistry
-from agentlink.schemas import MessageSchema, SchemaRegistry
-from agentlink.dlq import DeadLetterQueue, DeadLetter
-from agentlink.security import MessageEncryptor, generate_key, encrypt_message, decrypt_message
-from agentlink.gateway import ProtocolGateway
-from agentlink.transport import WSTransport, WSBridge, serialize_message, deserialize_message
 from agentlink.runtime.stream import StreamResult, is_streamable, stream_message
-from agentlink.integrations.engram import EngramMCPClient, EngramMemoryBackend, attach_memory, EngramMCPError
-from agentlink.hub import HubServer, HubClient, HubRegistry
-from agentlink.tracing import instrument_bus, InMemorySpanExporter, SpanRecord
+from agentlink.schemas import MessageSchema, SchemaRegistry
+from agentlink.security import MessageEncryptor, decrypt_message, encrypt_message, generate_key
+from agentlink.tracing import InMemorySpanExporter, SpanRecord, instrument_bus
+from agentlink.transport import WSBridge, WSTransport, deserialize_message, serialize_message
 
 # MCP Adapter (optional dependency)
 try:
-    from agentlink.adapters.mcp import (
+    from agentlink.adapters.fastmcp_adapter import FastMCPServer, fast_expose_bus  # noqa: F401
+    from agentlink.adapters.mcp import (  # noqa: F401
         MCPAdapter,
         MCPAgentNodeMixin,
-        MCPTool,
-        MCPResource,
-        create_mcp_bridge,
-        MCPError,
         MCPConnectionError,
+        MCPError,
+        MCPResource,
+        MCPTool,
         MCPToolError,
+        create_mcp_bridge,
     )
-    from agentlink.adapters.fastmcp_adapter import FastMCPServer, fast_expose_bus
     _mcp_available = True
 except ImportError:
     _mcp_available = False
 
-__version__ = "0.6.0"
+# A2A v1.0 card verification (optional dependency: pip install cdzzy-agentlink[a2a])
+try:
+    from agentlink.a2a import (  # noqa: F401
+        A2AVerificationError,
+        generate_signing_key,
+        sign_agent_card,
+        verify_agent_card,
+    )
+    _a2a_verify_available = True
+except ImportError:
+    _a2a_verify_available = False
+
+__version__ = "0.7.0"
 __all__ = [
     "AgentMessage",
     "MessageType",
@@ -97,7 +130,31 @@ __all__ = [
     "HubServer",
     "HubClient",
     "HubRegistry",
+    # A2A v1.0 compatibility layer
+    "A2A_PROTOCOL_VERSION",
+    "AGENT_CARD_WELLKNOWN_PATH",
+    "AgentCard",
+    "AgentCapabilities",
+    "AgentInterface",
+    "AgentSkill",
+    "A2ATransport",
+    "A2ATransportError",
+    "agent_card_url",
+    "agent_message_to_a2a_message",
+    "a2a_message_to_agent_message",
+    "agent_message_to_a2a_task",
+    "a2a_task_to_agent_message",
+    "ENVELOPE_METADATA_KEY",
 ]
+
+# Add A2A card verification exports if the optional extras are installed
+if _a2a_verify_available:
+    __all__.extend([
+        "A2AVerificationError",
+        "generate_signing_key",
+        "sign_agent_card",
+        "verify_agent_card",
+    ])
 
 # Add MCP exports if available
 if _mcp_available:

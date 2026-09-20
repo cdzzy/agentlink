@@ -6,36 +6,35 @@ MCPAdapter (client), MCPAgentNodeMixin, and HTTP integration tests.
 """
 
 import json
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
 
 # aiohttp is an optional dependency for HTTP server tests
 try:
-    from aiohttp import web, test_utils
+    from aiohttp import test_utils
     HAS_AIOHTTP = True
 except ImportError:
     HAS_AIOHTTP = False
 
 from agentlink.adapters.mcp import (
-    MCPError,
-    MCPConnectionError,
-    MCPToolError,
-    MCPTool,
-    MCPResource,
-    MCPAdapter,
-    MCPAgentNodeMixin,
-    create_mcp_bridge,
-    expose_bus_as_mcp,
-    create_mcp_app,
-    _agent_to_tool_name,
-    _parse_tool_name,
-    ToolResult,
     JsonRpcRequest,
     JsonRpcResponse,
+    MCPAdapter,
+    MCPAgentNodeMixin,
+    MCPConnectionError,
+    MCPError,
     McpErrorCode,
     MCPServerAdapter,
+    MCPTool,
+    MCPToolError,
+    ToolResult,
+    _agent_to_tool_name,
+    _parse_tool_name,
+    create_mcp_app,
+    create_mcp_bridge,
+    expose_bus_as_mcp,
 )
-
 
 # ─── Tool Name Conversion ────────────────────────────────────────
 
@@ -125,8 +124,14 @@ class TestMCPServerAdapterInitialize:
         adapter = MCPServerAdapter()
         # Mock the raw_send to avoid real I/O
         adapter.raw_send = MagicMock(return_value={"result": {}})
-        req = {"jsonrpc": "2.0", "id": 1, "method": "initialize",
-               "params": {"protocolVersion": "2025-11-25", "capabilities": {}, "clientInfo": {"name": "test", "version": "1.0"}}}
+        req = {
+            "jsonrpc": "2.0", "id": 1, "method": "initialize",
+            "params": {
+                "protocolVersion": "2025-11-25",
+                "capabilities": {},
+                "clientInfo": {"name": "test", "version": "1.0"},
+            },
+        }
         result = await adapter.handle_message(req)
         assert result["result"]["protocolVersion"] == "2025-11-25"
         assert result["result"]["capabilities"]["tools"]
@@ -278,7 +283,9 @@ class TestMCPHTTPServer:
             },
         })
         async with test_utils.TestClient(test_utils.TestServer(app)) as client:
-            resp = await client.post("/", data=payload, headers={"Content-Type": "application/json"})
+            resp = await client.post(
+                "/", data=payload, headers={"Content-Type": "application/json"}
+            )
             assert resp.status in (200, 202)
 
 
@@ -335,7 +342,7 @@ class TestMCPAdapterRoundTrip:
 
     def test_call_tool_success(self):
         a = MCPAdapter("http:x")
-        with patch.object(a, '_http_request', return_value={"result": "ok"}) as m:
+        with patch.object(a, '_http_request', return_value={"result": "ok"}):
             result = a.call_tool("find", {"q": "x"})
             assert result == "ok"
 

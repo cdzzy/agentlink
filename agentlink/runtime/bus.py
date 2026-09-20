@@ -18,14 +18,12 @@ from __future__ import annotations
 import logging
 import threading
 import time
-import uuid
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional
 
+from agentlink.dlq import DeadLetter, DeadLetterQueue
 from agentlink.protocol.message import AgentAddress, AgentMessage, MessageType
-from agentlink.protocol.routing import RoutingStrategy
 from agentlink.runtime.registry import AgentRegistry
 from agentlink.schemas import SchemaRegistry
-from agentlink.dlq import DeadLetterQueue, DeadLetter
 
 logger = logging.getLogger(__name__)
 
@@ -434,7 +432,7 @@ class AgentBus:
         print(f"  Namespaces        : {list(summary['namespaces'].keys())}")
         print(f"  Messages routed   : {self._stats['messages_routed']}")
         print(f"  Broadcasts        : {self._stats['broadcasts']}")
-        print(f"\n  Agents:")
+        print("\n  Agents:")
         for record in self.registry.all_agents():
             caps = ", ".join(record.capabilities) if record.capabilities else "(none)"
             print(f"    - {record.address_str:<30}  caps: {caps}")

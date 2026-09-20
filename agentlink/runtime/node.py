@@ -9,15 +9,13 @@ and the ability to speak AgentLink.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import threading
-import time
 from typing import Any, Callable, Dict, List, Optional, Union
 
 from agentlink.protocol.capability import AgentCapability, CapabilitySet
 from agentlink.protocol.message import AgentAddress, AgentMessage, MessageType
-from agentlink.runtime.stream import StreamResult, is_streamable, stream_message
+from agentlink.runtime.stream import StreamResult, is_streamable
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +110,11 @@ class AgentNode:
             self._inbox.append(message)
 
         # Incoming stream messages are routed to the matching collector
-        if message.type in (MessageType.STREAM_START, MessageType.STREAM_CHUNK, MessageType.STREAM_END):
+        if message.type in (
+            MessageType.STREAM_START,
+            MessageType.STREAM_CHUNK,
+            MessageType.STREAM_END,
+        ):
             return self._handle_stream_message(message)
 
         # Skip processing for PING — auto-reply with PONG
@@ -232,7 +234,11 @@ class AgentNode:
 
         if isinstance(recipient, str):
             # Support "agent_id@namespace" or just "agent_id"
-            recipient = AgentAddress.parse(recipient) if "@" in recipient else AgentAddress(recipient, self.namespace)
+            recipient = (
+                AgentAddress.parse(recipient)
+                if "@" in recipient
+                else AgentAddress(recipient, self.namespace)
+            )
 
         msg = AgentMessage(
             type=msg_type,
@@ -287,7 +293,11 @@ class AgentNode:
             )
 
         if isinstance(recipient, str):
-            recipient = AgentAddress.parse(recipient) if "@" in recipient else AgentAddress(recipient, self.namespace)
+            recipient = (
+                AgentAddress.parse(recipient)
+                if "@" in recipient
+                else AgentAddress(recipient, self.namespace)
+            )
 
         msg = AgentMessage(
             type=MessageType.REQUEST,

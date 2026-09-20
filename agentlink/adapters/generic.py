@@ -52,5 +52,6 @@ class GenericAdapter(BaseAdapter):
         if self._accept_message:
             return self._fn(message)
         else:
-            content = str(message.content) if not isinstance(message.content, str) else message.content
+            raw = message.content
+            content = raw if isinstance(raw, str) else str(raw)
             return self._fn(content)

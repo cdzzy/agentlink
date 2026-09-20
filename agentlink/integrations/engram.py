@@ -29,7 +29,6 @@ from __future__ import annotations
 
 import json
 import subprocess
-import uuid
 from typing import Any, Callable, Dict, List, Optional
 
 from agentlink.protocol.message import AgentMessage
@@ -222,7 +221,9 @@ class EngramMemoryBackend:
 
     def record_message(self, message: AgentMessage) -> Optional[Dict[str, Any]]:
         """Store a routed message as an episodic memory. Failures are swallowed."""
-        summary = message.content if isinstance(message.content, str) else json.dumps(message.content)
+        summary = (
+            message.content if isinstance(message.content, str) else json.dumps(message.content)
+        )
         try:
             return self.client.store(
                 content=f"{message.type.value} {message.sender}→{message.recipient}: {summary}",

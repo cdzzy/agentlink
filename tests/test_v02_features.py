@@ -7,23 +7,31 @@ Tests for v0.2.0 features:
 - WebSocket transport (#4)
 """
 
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from dataclasses import dataclass
 
 import pytest
 
-from agentlink.protocol.message import AgentMessage, MessageType, AgentAddress
-from agentlink.runtime.node import AgentNode
-from agentlink.runtime.bus import AgentBus
-from agentlink.schemas import MessageSchema, SchemaRegistry
-from agentlink.dlq import DeadLetterQueue, DeadLetter
+from agentlink.dlq import DeadLetterQueue
 from agentlink.gateway import ProtocolGateway
+from agentlink.protocol.message import AgentAddress, AgentMessage, MessageType
+from agentlink.runtime.bus import AgentBus
+from agentlink.runtime.node import AgentNode
+from agentlink.schemas import MessageSchema, SchemaRegistry
 
 try:
     import cryptography  # noqa: F401
-    from agentlink.security import MessageEncryptor, generate_key, encrypt_message, decrypt_message
+
+    from agentlink.security import (  # noqa: F401
+        MessageEncryptor,
+        decrypt_message,
+        encrypt_message,
+        generate_key,
+    )
     HAS_CRYPTO = True
 except ImportError:
     HAS_CRYPTO = False
@@ -34,8 +42,7 @@ try:
 except ImportError:
     HAS_WEBSOCKETS = False
 
-from agentlink.transport import serialize_message, deserialize_message
-
+from agentlink.transport import deserialize_message, serialize_message
 
 # ── Message Schemas (#1) ────────────────────────────────────────────────
 

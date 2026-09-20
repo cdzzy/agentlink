@@ -13,7 +13,7 @@ Supports:
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from agentlink.adapters.base import BaseAdapter
 from agentlink.protocol.capability import AgentCapability
@@ -205,7 +205,3 @@ class OpenAIAssistantAdapter(BaseAdapter):
             if hasattr(content, "text") and content.text:
                 return content.text.value
         return ""
-
-
-# Type hint fix for List
-from typing import Union

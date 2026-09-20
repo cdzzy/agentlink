@@ -2,15 +2,17 @@
 Tests for streaming support (v0.3.0).
 """
 
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest
 
-from agentlink.runtime.node import AgentNode
+from agentlink.protocol.message import AgentAddress, MessageType
 from agentlink.runtime.bus import AgentBus
+from agentlink.runtime.node import AgentNode
 from agentlink.runtime.stream import StreamResult, is_streamable, stream_message
-from agentlink.protocol.message import MessageType, AgentAddress
 
 
 def make_bus_with(handler):
@@ -51,7 +53,9 @@ class TestStreamHelpers:
             r.collect()
 
     def test_stream_message_builder(self):
-        m = stream_message(MessageType.STREAM_CHUNK, "c1", AgentAddress("a"), AgentAddress("b"), "x")
+        m = stream_message(
+            MessageType.STREAM_CHUNK, "c1", AgentAddress("a"), AgentAddress("b"), "x"
+        )
         assert m.type == MessageType.STREAM_CHUNK
         assert m.correlation_id == "c1"
         assert m.content == "x"

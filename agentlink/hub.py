@@ -40,7 +40,7 @@ from __future__ import annotations
 import json
 import threading
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qs, urlparse
@@ -251,7 +251,9 @@ class HubServer:
     def start(self) -> "HubServer":
         if self._server is not None:
             return self
-        self._server = ThreadingHTTPServer((self.host, self._requested_port), _make_handler(self.registry))
+        self._server = ThreadingHTTPServer(
+            (self.host, self._requested_port), _make_handler(self.registry)
+        )
         self._server.daemon_threads = True
         thread = threading.Thread(target=self._server.serve_forever, daemon=True)
         thread.start()

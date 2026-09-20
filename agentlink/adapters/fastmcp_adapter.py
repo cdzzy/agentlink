@@ -62,10 +62,9 @@ from __future__ import annotations
 
 import inspect
 import typing
-from typing import Any, Callable, Awaitable, Optional, get_type_hints
+from typing import Any, Awaitable, Callable, Optional, get_type_hints
 
 from agentlink.adapters.mcp import MCPServerAdapter, ToolResult
-
 
 # ─── Python type → JSON Schema ─────────────────────────────────────────────
 

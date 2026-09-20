@@ -19,7 +19,6 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-
 # ── Message Types ───────────────────────────────────────────────────────────
 
 class MessageType(str, Enum):
@@ -136,7 +135,7 @@ class AgentMessage:
     ttl: Optional[int] = None             # Time-to-live in seconds (None = no limit)
 
     # Content typing
-    content_type: str = "text/plain"      # MIME-like: "text/plain", "application/json", "agent/task"
+    content_type: str = "text/plain"  # MIME-like: "text/plain", "application/json", "agent/task"
 
     def reply(self, content: Any, msg_type: MessageType = MessageType.REPLY) -> "AgentMessage":
         """Create a reply to this message."""
@@ -212,7 +211,8 @@ class AgentMessage:
         )
 
     def __repr__(self) -> str:
-        content_preview = str(self.content)[:60] + "..." if len(str(self.content)) > 60 else str(self.content)
+        text = str(self.content)
+        content_preview = text[:60] + "..." if len(text) > 60 else text
         return (
             f"AgentMessage(type={self.type.value!r}, "
             f"from={self.sender}, to={self.recipient}, "

@@ -1,17 +1,19 @@
 """
 Tests for the AgentLink protocol and runtime.
 """
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest
-from agentlink.protocol.message import AgentAddress, AgentMessage, MessageEnvelope, MessageType
-from agentlink.protocol.capability import AgentCapability, CapabilitySet
-from agentlink.runtime.node import AgentNode
-from agentlink.runtime.bus import AgentBus, DeliveryError
-from agentlink.runtime.registry import AgentRegistry
-from agentlink.adapters.generic import GenericAdapter
 
+from agentlink.adapters.generic import GenericAdapter
+from agentlink.protocol.capability import AgentCapability, CapabilitySet
+from agentlink.protocol.message import AgentAddress, AgentMessage, MessageEnvelope, MessageType
+from agentlink.runtime.bus import AgentBus, DeliveryError
+from agentlink.runtime.node import AgentNode
+from agentlink.runtime.registry import AgentRegistry
 
 # ── AgentAddress ─────────────────────────────────────────────────
 

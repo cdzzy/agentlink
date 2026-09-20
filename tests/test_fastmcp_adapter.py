@@ -10,18 +10,18 @@ Covers:
 """
 
 import json
+from typing import List, Optional
+
 import pytest
-from typing import Optional, List
 
 from agentlink.adapters.fastmcp_adapter import (
     FastMCPServer,
-    fast_expose_bus,
-    _py_type_to_json_schema,
     _build_input_schema,
+    _py_type_to_json_schema,
     _wrap_return,
+    fast_expose_bus,
 )
 from agentlink.adapters.mcp import ToolResult
-
 
 # ─── Type inference ────────────────────────────────────────────────────────────
 
@@ -49,7 +49,6 @@ class TestPyTypeToJsonSchema:
         assert schema == {"type": "string"}
 
     def test_list_of_str(self):
-        from typing import List
         schema = _py_type_to_json_schema(List[str])
         assert schema.get("type") == "array"
         assert schema.get("items") == {"type": "string"}

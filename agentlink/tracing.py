@@ -123,7 +123,9 @@ def instrument_bus(
     original_route: Callable = bus._route
 
     if tracer is not None:
-        def traced_route_otel(message: AgentMessage, sender_node: Any = None, timeout: float = 30.0):
+        def traced_route_otel(
+            message: AgentMessage, sender_node: Any = None, timeout: float = 30.0
+        ):
             attributes = _span_attributes(message, service_name)
             with tracer.start_as_current_span(
                 f"agentlink.route.{message.type.value}", attributes=attributes

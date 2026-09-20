@@ -23,14 +23,13 @@ from __future__ import annotations
 
 import json
 import uuid
+from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional, Union
-from dataclasses import dataclass, field, asdict
 
 from agentlink.adapters.base import BaseAdapter
 from agentlink.protocol.capability import AgentCapability
 from agentlink.protocol.message import AgentMessage, MessageType
 from agentlink.runtime.node import AgentNode
-
 
 # ---------------------------------------------------------------------------
 # A2A Protocol Types
@@ -155,8 +154,8 @@ class A2AAdapter(BaseAdapter):
     async def _ainvoke(self, message: AgentMessage) -> Any:
         """Async invoke — call the remote A2A agent via JSON-RPC."""
         try:
-            import urllib.request
             import urllib.error
+            import urllib.request
 
             params = {
                 "id": str(uuid.uuid4()),
@@ -188,8 +187,8 @@ class A2AAdapter(BaseAdapter):
     def _invoke(self, message: AgentMessage) -> Any:
         """Sync invoke wrapper."""
         try:
-            import urllib.request
             import urllib.error
+            import urllib.request
 
             params = {
                 "id": str(uuid.uuid4()),
@@ -225,8 +224,8 @@ class A2AAdapter(BaseAdapter):
 
         Per the A2A spec, the agent card is published at /.well-known/agent.json
         """
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         try:
             req = urllib.request.Request(
@@ -315,7 +314,10 @@ class A2AServerAdapter:
             name=node.agent_id,
             description=node.description or f"AgentLink agent: {node.agent_id}",
             skills=[
-                {"id": cap if isinstance(cap, str) else cap.name, "name": cap if isinstance(cap, str) else cap.name}
+                {
+                    "id": cap if isinstance(cap, str) else cap.name,
+                    "name": cap if isinstance(cap, str) else cap.name,
+                }
                 for cap in (node.capabilities or [])
             ] if node.capabilities else [],
             endpoint=f"http://{host}:{port}",
@@ -365,7 +367,8 @@ class A2AServerAdapter:
 
     async def _handle_get_task(self, request_id: str, task_id: str) -> bytes:
         """Handle agent/getTask — return task status (stub for A2A spec compat)."""
-        return json.dumps(a2a_response({"taskId": task_id, "status": "unknown"}, request_id)).encode()
+        payload = a2a_response({"taskId": task_id, "status": "unknown"}, request_id)
+        return json.dumps(payload).encode()
 
     def get_agent_card_json(self) -> bytes:
         """Return the A2A Agent Card as JSON bytes."""
@@ -378,7 +381,6 @@ class A2AServerAdapter:
         Uses asyncio to run a minimal HTTP server without extra dependencies.
         """
         import asyncio
-        import os
 
         async def handler(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
             addr = writer.get_extra_info("peername")

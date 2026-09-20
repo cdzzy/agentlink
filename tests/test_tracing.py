@@ -2,14 +2,16 @@
 Tests for OpenTelemetry-compatible tracing (v0.4.0).
 """
 
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest
 
-from agentlink.runtime.node import AgentNode
 from agentlink.runtime.bus import AgentBus, DeliveryError
-from agentlink.tracing import instrument_bus, InMemorySpanExporter
+from agentlink.runtime.node import AgentNode
+from agentlink.tracing import InMemorySpanExporter, instrument_bus
 
 
 def make_bus():
