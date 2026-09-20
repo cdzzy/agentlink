@@ -35,16 +35,30 @@ jobs:
         with:
           name: distributions
           path: dist/
+      # Guard: only proceed when the PYPI_API_TOKEN secret is configured.
+      # (The secrets context is unavailable in step/job `if`, so the check
+      # runs in a shell and exports an output flag consumed below.)
+      - name: Check PYPI_API_TOKEN secret
+        id: token-guard
+        env:
+          PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          if [ -z "$PYPI_TOKEN" ]; then
+            echo "has-token=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::PYPI_API_TOKEN secret is not configured — skipping PyPI publish."
+          else
+            echo "has-token=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish to PyPI
-        # Runs only when the PYPI_API_TOKEN secret is configured;
-        # skipped automatically (without failing) otherwise.
-        if: ${{ secrets.PYPI_API_TOKEN != '' }}
+        if: steps.token-guard.outputs.has-token == 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
           skip-existing: true
+
       - name: PyPI publish skipped (no secret configured)
-        if: ${{ secrets.PYPI_API_TOKEN == '' }}
+        if: steps.token-guard.outputs.has-token != 'true'
         run: >-
           echo "PYPI_API_TOKEN secret is not set on this repository —
           PyPI publishing was skipped. Build artifacts remain available
