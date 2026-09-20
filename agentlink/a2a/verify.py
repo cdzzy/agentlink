@@ -65,9 +65,17 @@ def _b64url_decode(text: str) -> bytes:
     return base64.urlsafe_b64decode(text + padding)
 
 
-def _b64url_uint(value: int) -> str:
-    """Big-endian Base64url of an unsigned integer, minimal octets (RFC 7518)."""
-    size = max(1, (value.bit_length() + 7) // 8)
+def _b64url_uint(value: int, size: Optional[int] = None) -> str:
+    """Big-endian Base64url of an unsigned integer (RFC 7518).
+
+    Per RFC 7518 §6.2.1.2 the EC coordinate fields ``x``/``y`` MUST be
+    the fixed octet length defined by the curve (zero-padded on the
+    left), e.g. 32 bytes for P-256. Pass ``size`` explicitly for those
+    fields; strict JWK parsers (e.g. recent PyJWT releases) reject
+    shorter encodings.
+    """
+    if size is None:
+        size = max(1, (value.bit_length() + 7) // 8)
     return _b64url_encode(value.to_bytes(size, "big"))
 
 
@@ -119,15 +127,20 @@ def _public_key_to_jwk(public_key: Any, kid: str, algorithm: str) -> Dict[str, A
     }
     if isinstance(public_key, rsa.RSAPublicKey):
         numbers = public_key.public_numbers()
-        jwk.update({"kty": "RSA", "n": _b64url_uint(numbers.n), "e": _b64url_uint(numbers.e)})
+        jwk.update({
+            "kty": "RSA",
+            "n": _b64url_uint(numbers.n, (public_key.key_size + 7) // 8),
+            "e": _b64url_uint(numbers.e),
+        })
     elif isinstance(public_key, ec.EllipticCurvePublicKey):
         numbers = public_key.public_numbers()
         crv = "P-256" if isinstance(public_key.curve, ec.SECP256R1) else public_key.curve.name
+        coord_size = (public_key.curve.key_size + 7) // 8
         jwk.update({
             "kty": "EC",
             "crv": crv,
-            "x": _b64url_uint(numbers.x),
-            "y": _b64url_uint(numbers.y),
+            "x": _b64url_uint(numbers.x, coord_size),
+            "y": _b64url_uint(numbers.y, coord_size),
         })
     elif isinstance(public_key, ed25519.Ed25519PublicKey):
         raw = public_key.public_bytes(Encoding.Raw, PublicFormat.Raw)
