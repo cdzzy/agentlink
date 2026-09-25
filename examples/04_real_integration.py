@@ -12,19 +12,20 @@ Set environment variable:
 
 Run: python examples/04_real_integration.py
 """
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from agentlink import AgentBus
-from agentlink.adapters import LangGraphAdapter, AutoGenAdapter, GenericAdapter
+from agentlink.adapters import AutoGenAdapter, GenericAdapter, LangGraphAdapter
 
 
 def build_langgraph_planner():
     """Build a real LangGraph planning agent."""
     try:
-        from langchain_core.messages import HumanMessage
         from langchain_openai import ChatOpenAI
-        from langgraph.graph import StateGraph, MessagesState, START, END
+        from langgraph.graph import END, START, MessagesState, StateGraph
 
         llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 

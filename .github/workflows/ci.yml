@@ -16,9 +16,9 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install ruff
-        run: pip install ruff
+        run: pip install "ruff==0.16.8"  # pinned for reproducible lint results
       - name: Lint (ruff)
-        run: ruff check agentlink tests
+        run: ruff check .
 
   test:
     runs-on: ubuntu-latest

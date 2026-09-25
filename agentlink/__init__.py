@@ -93,7 +93,7 @@ try:
 except ImportError:
     _a2a_verify_available = False
 
-__version__ = "0.7.0"
+__version__ = "0.7.1"
 __all__ = [
     "AgentMessage",
     "MessageType",

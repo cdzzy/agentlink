@@ -2,6 +2,17 @@
 
 All notable changes to AgentLink are documented in this file.
 
+## [0.7.1] - 2026-09-25
+
+### Fixed
+
+- `examples/05_async_streaming.py` referenced an undefined `AgentAddress` symbol (ruff F821) and built a dead `AgentMessage` that was never sent; the demo now streams directly.
+- Examples linted repo-wide: 34 ruff findings fixed across `examples/` — unused imports/variables, unsorted imports, placeholder-less f-strings, and dead bindings. The A2A server example now prints its agent card JSON instead of leaving `server` unused.
+
+### Changed
+
+- CI lint job pins `ruff==0.16.8` for reproducible results and lints the whole repository instead of only `agentlink tests`, so future example regressions (like the F821 above) are caught on the first commit.
+
 ## [0.7.0] - 2026-09-20
 
 ### Added

@@ -20,8 +20,8 @@ async def example_server():
     - Handles A2A JSON-RPC requests at POST /a2a
     - Translates A2A messages to AgentLink messages and calls the node
     """
-    from agentlink import AgentNode, AgentBus, AgentMessage, MessageType
-    from agentlink.adapters.a2a_adapter import A2AServerAdapter, A2AAgentCard
+    from agentlink import AgentMessage, AgentNode
+    from agentlink.adapters.a2a_adapter import A2AAgentCard, A2AServerAdapter
 
     # Define a simple agent
     def researcher(message: AgentMessage) -> str:
@@ -54,6 +54,8 @@ async def example_server():
     print("Starting A2A server...")
     print("Agent Card available at: http://localhost:8000/.well-known/agent.json")
     print("A2A JSON-RPC endpoint: http://localhost:8000/a2a")
+    print("Agent Card JSON:")
+    print(server.get_agent_card_json().decode())
 
     # Run the server
     # await server.start()  # Uncomment to run
@@ -93,8 +95,9 @@ async def example_client():
 
 def example_agent_card():
     """Example 3: Generate an A2A Agent Card from AgentLink metadata."""
-    from agentlink.adapters.a2a_adapter import A2AAgentCard
     import json
+
+    from agentlink.adapters.a2a_adapter import A2AAgentCard
 
     card = A2AAgentCard(
         name="cdzzy-researcher",

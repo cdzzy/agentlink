@@ -9,13 +9,13 @@ and swap GenericAdapter for LangGraphAdapter / AutoGenAdapter / CrewAIAdapter.
 
 Run: python examples/02_cross_framework.py
 """
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from agentlink import AgentNode, AgentBus, AgentMessage
+from agentlink import AgentBus, AgentMessage
 from agentlink.adapters import GenericAdapter
-from agentlink.protocol.capability import AgentCapability
-
 
 print("\n" + "="*60)
 print("  AgentLink — Cross-Framework Collaboration Demo")
@@ -71,7 +71,7 @@ def mock_crewai_agent(input_text: str) -> str:
 
 def mock_custom_agent(input_text: str) -> str:
     """A plain Python agent — no framework needed."""
-    return f"[Custom Agent] Orchestration complete. All agents responded successfully."
+    return "[Custom Agent] Orchestration complete. All agents responded successfully."
 
 
 # ─────────────────────────────────────────────────────────────────

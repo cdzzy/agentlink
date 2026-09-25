@@ -6,7 +6,6 @@ agentlink examples: MCP Protocol Bridge
 """
 
 import asyncio
-import json
 from typing import Any
 
 
@@ -35,7 +34,6 @@ class MCPToolAdapter:
         if tool_name not in self._tool_registry:
             raise ValueError(f"Tool '{tool_name}' not found in registry")
 
-        tool = self._tool_registry[tool_name]
         # 构建 MCP 格式的调用请求
         mcp_request = {
             "jsonrpc": "2.0",

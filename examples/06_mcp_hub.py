@@ -10,7 +10,7 @@ Usage:
     python examples/06_mcp_hub.py
 """
 
-from agentlink.extensions.mcp_hub import MCPHub, MCPHubNode, MCPServerInfo
+from agentlink.extensions.mcp_hub import MCPHub, MCPHubNode
 
 
 def example_hub_basic():

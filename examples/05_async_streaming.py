@@ -14,9 +14,9 @@ Usage:
 
 import asyncio
 import time
-from agentlink import AgentNode, AgentBus, AgentMessage
-from agentlink.protocol.message import MessageType
 
+from agentlink import AgentBus, AgentMessage, AgentNode
+from agentlink.protocol.message import MessageType
 
 # ─── Async Agent Handlers ────────────────────────────────────────────────────
 
@@ -56,9 +56,9 @@ async def streaming_analyst(message: AgentMessage) -> str:
     query = message.content
     chunks = [
         f"Analyzing: '{query}'...\n",
-        f"Step 1: Collecting data points\n",
-        f"Step 2: Evaluating patterns\n",
-        f"Step 3: Computing relevance scores\n",
+        "Step 1: Collecting data points\n",
+        "Step 2: Evaluating patterns\n",
+        "Step 3: Computing relevance scores\n",
         f"Conclusion: {query} requires multi-dimensional analysis.\n",
     ]
     
@@ -171,13 +171,6 @@ async def demo_streaming():
     print("=" * 60)
     
     analyst = AgentNode("analyst", streaming_analyst, capabilities=["analysis"])
-    
-    msg = AgentMessage(
-        type=MessageType.REQUEST,
-        sender=AgentAddress("client", "demo"),
-        recipient=AgentAddress("analyst", "demo"),
-        content="user engagement metrics",
-    )
     
     print("\nStreaming output:")
     print("-" * 40)

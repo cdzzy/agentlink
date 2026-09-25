@@ -4,11 +4,12 @@ Two agents talking to each other over an AgentLink bus.
 
 Run: python examples/01_quickstart.py
 """
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from agentlink import AgentNode, AgentBus, AgentMessage
-
+from agentlink import AgentBus, AgentMessage, AgentNode
 
 # ── Define your agents (any callable works) ──────────────────────
 

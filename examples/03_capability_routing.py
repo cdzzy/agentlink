@@ -6,14 +6,15 @@ by capability rather than hard-coded IDs.
 
 Run: python examples/03_capability_routing.py
 """
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import time
-from agentlink import AgentNode, AgentBus, AgentMessage
-from agentlink.protocol.capability import AgentCapability, WELL_KNOWN_CAPABILITIES
-from agentlink.protocol.message import MessageType
 
+from agentlink import AgentBus, AgentMessage, AgentNode
+from agentlink.protocol.capability import WELL_KNOWN_CAPABILITIES
 
 # ── Agents ────────────────────────────────────────────────────────
 
