@@ -2,6 +2,19 @@
 
 All notable changes to AgentLink are documented in this file.
 
+## [0.8.1] - 2026-10-02
+
+### Fixed
+
+- **WebSocket transport robustness** (`agentlink.transport`): the server handler now tolerates malformed JSON frames (replies with an ERROR frame instead of crashing the connection), awaits async `on_message` callbacks (the `WSBridge` async handler previously crashed the handler thread on first reply), and the client `send()` no longer blocks forever against a silent server — replies time out after `reply_timeout` seconds (default 30s).
+- **Hub hardening** (`agentlink.hub`): POST bodies are capped at 1 MiB (413 on oversized, 400 on invalid JSON/Content-Length instead of a handler crash), and the heartbeat loop re-registers the client after 3 consecutive failures so agents survive a hub restart instead of silently vanishing from discovery.
+- **Version drift**: `agentlink.__version__` is now sourced from installed package metadata (with a fallback), so it can no longer lag behind `pyproject.toml`.
+
+### Changed
+
+- CI: `actions/setup-python` now caches pip installs across the lint and 5-version test matrix.
+- Added `tests/test_transport.py` covering request/reply round-trips, the reply timeout, and malformed-frame tolerance (4 new tests).
+
 ## [0.8.0] - 2026-10-02
 
 ### Added

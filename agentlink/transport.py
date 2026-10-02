@@ -24,6 +24,8 @@ Usage (client)::
 
 from __future__ import annotations
 
+import asyncio
+import inspect
 import json
 from typing import Any, Callable, Dict, Optional
 
@@ -54,11 +56,13 @@ class WSTransport:
         host: str = "0.0.0.0",
         port: int = 8765,
         on_message: Optional[Callable[[AgentMessage], Any]] = None,
+        reply_timeout: float = 30.0,
     ) -> None:
         self.url = url
         self.host = host
         self.port = port
         self.on_message = on_message
+        self.reply_timeout = reply_timeout
         self._connection = None
         self._server = None
 
@@ -94,10 +98,22 @@ class WSTransport:
 
     async def _handle(self, websocket) -> None:
         async for raw in websocket:
-            data = json.loads(raw)
-            message = deserialize_message(data)
+            try:
+                data = json.loads(raw)
+                message = deserialize_message(data)
+            except Exception:  # noqa: BLE001 — malformed frames must not kill the handler
+                error = AgentMessage(
+                    type=MessageType.ERROR,
+                    sender="transport",
+                    recipient=self.url or "unknown",
+                    content={"error": "malformed message frame"},
+                )
+                await websocket.send(json.dumps(serialize_message(error)))
+                continue
             if self.on_message:
                 result = self.on_message(message)
+                if inspect.iscoroutine(result):
+                    result = await result
                 if result is not None:
                     if isinstance(result, AgentMessage):
                         await websocket.send(json.dumps(serialize_message(result)))
@@ -115,7 +131,11 @@ class WSTransport:
         if self._connection is None:
             raise RuntimeError("Not connected. Call connect() first.")
         await self._connection.send(json.dumps(serialize_message(message)))
-        reply_raw = await self._connection.recv()
+        # A server without an on_message handler never replies; waiting forever
+        # would deadlock the client. Time out and treat silence as "no reply".
+        reply_raw = await asyncio.wait_for(
+            self._connection.recv(), timeout=self.reply_timeout
+        )
         if reply_raw:
             return deserialize_message(json.loads(reply_raw))
         return None

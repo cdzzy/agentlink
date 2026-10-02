@@ -42,9 +42,12 @@ import threading
 import uuid
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Type
 from urllib.parse import parse_qs, urlparse
 from urllib.request import Request, urlopen
+
+_MAX_BODY_BYTES = 1_000_000  # 1 MiB cap on POST bodies
+_REREGISTER_AFTER_FAILURES = 3
 
 
 @dataclass
@@ -168,7 +171,7 @@ class HubRegistry:
 
 # ── HTTP Server ──────────────────────────────────────────────────────────
 
-def _make_handler(registry: HubRegistry):
+def _make_handler(registry: HubRegistry) -> Type[BaseHTTPRequestHandler]:
     class HubHandler(BaseHTTPRequestHandler):
         def log_message(self, *args) -> None:  # silence default stderr logging
             pass
@@ -202,8 +205,21 @@ def _make_handler(registry: HubRegistry):
                 self._json(404, {"error": "not found"})
 
         def do_POST(self) -> None:  # noqa: N802
-            length = int(self.headers.get("Content-Length", 0))
-            body = json.loads(self.rfile.read(length) or b"{}")
+            # Bound the request body: a hub is a public endpoint, so oversized
+            # or malformed payloads must be rejected instead of buffered.
+            try:
+                length = int(self.headers.get("Content-Length", 0))
+            except ValueError:
+                self._json(400, {"error": "invalid Content-Length"})
+                return
+            if length < 0 or length > _MAX_BODY_BYTES:
+                self._json(413, {"error": "request body too large"})
+                return
+            try:
+                body = json.loads(self.rfile.read(length) or b"{}")
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                self._json(400, {"error": "invalid JSON body"})
+                return
             parsed = urlparse(self.path)
 
             if parsed.path == "/register":
@@ -393,11 +409,24 @@ class HubClient:
 
     def _heartbeat_loop(self) -> None:
         interval = self.heartbeat_interval or max(1.0, self.ttl_seconds / 3)
+        consecutive_failures = 0
         while not self._stop.wait(interval):
             try:
-                self.heartbeat()
+                ok = self.heartbeat()
             except Exception:
-                pass  # expired registrations are re-registered on next use
+                ok = False
+            if ok:
+                consecutive_failures = 0
+            else:
+                consecutive_failures += 1
+                # The hub may have restarted and lost our registration; renew
+                # it explicitly so discovery keeps working across restarts.
+                if consecutive_failures >= _REREGISTER_AFTER_FAILURES:
+                    consecutive_failures = 0
+                    try:
+                        self.register()
+                    except Exception:
+                        pass
 
     def start(self) -> "HubClient":
         self.register()

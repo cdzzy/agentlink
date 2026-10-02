@@ -93,7 +93,12 @@ try:
 except ImportError:
     _a2a_verify_available = False
 
-__version__ = "0.7.1"
+try:
+    from importlib.metadata import version as _pkg_version
+
+    __version__ = _pkg_version("cdzzy-agentlink")
+except Exception:  # noqa: BLE001 — not installed (source checkout)
+    __version__ = "0.8.1"
 __all__ = [
     "AgentMessage",
     "MessageType",
