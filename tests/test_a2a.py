@@ -198,12 +198,13 @@ class TestContentParts:
 
     def test_text_part(self):
         part = content_to_part("hello")
-        assert part == {"text": "hello", "mediaType": "text/plain"}
+        assert part == {"kind": "text", "text": "hello", "mediaType": "text/plain"}
         assert parts_to_content([part]) == "hello"
 
     def test_data_part(self):
         for payload in ({"a": 1}, [1, 2], 42, 3.14, True, None):
             part = content_to_part(payload)
+            assert part["kind"] == "data"
             assert part["data"] == payload
             assert part["mediaType"] == "application/json"
             assert parts_to_content([part]) == payload
@@ -211,8 +212,9 @@ class TestContentParts:
     def test_raw_part(self):
         blob = b"\x00\x01binary"
         part = content_to_part(blob)
-        assert part["raw"] == base64.b64encode(blob).decode("ascii")
-        assert part["mediaType"] == "application/octet-stream"
+        assert part["kind"] == "file"
+        assert part["file"]["fileWithBytes"] == base64.b64encode(blob).decode("ascii")
+        assert part["file"]["mimeType"] == "application/octet-stream"
         assert parts_to_content([part]) == blob
 
     def test_unsupported_content_raises(self):

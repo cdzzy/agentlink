@@ -2,6 +2,20 @@
 
 All notable changes to AgentLink are documented in this file.
 
+## [0.8.0] - 2026-10-02
+
+### Added
+
+- **A2A v1.0 SSE streaming** (`agentlink.a2a`): full `SendStreamingMessage` support on both sides of the wire.
+  - *Client*: `A2ATransport.stream()` / `astream()` POST with `Accept: text/event-stream`, parse the SSE body event-by-event and return reply `AgentMessage`s in arrival order; `build_stream_request()` emits the v1.0 method (legacy `message/stream` still accepted).
+  - *Server*: `parse_stream_request()` decodes streaming requests; `build_stream_events()` / `build_sse_body()` / `build_stream_response()` emit the v1.0 *task-lifecycle stream* pattern — opening `Task` (`kind: "task"`) → a pure-state `status-update` (`WORKING`) before every chunk → one `artifact-update` per chunk (final chunk carries `lastChunk: true`) → terminal `status-update` (`final: true`). Content travels only via artifacts, so nothing is decoded twice.
+  - *Mapping*: `task_object`, `status_update_event`, `artifact_update_event`, `stream_event_to_agent_message` plus the `EVENT_KIND_*` discriminators. Status updates can embed an envelope-carrying Message for lossless AgentLink-to-AgentLink streaming; the opening Task and unknown event kinds decode to `None`.
+- 32 streaming tests covering event construction/decoding, SSE parsing (keep-alives, multi-line `data:` blocks, JSON-RPC error bodies), event-pattern shape and full server→client wire round-trips.
+
+### Changed
+
+- **v1.0 conformance of wire objects**: every serialized `Message` now carries `kind: "message"`, and every `Part` is a proper discriminated union — `{"kind": "text", ...}` / `{"kind": "data", ...}` / `{"kind": "file", "file": {"fileWithBytes": ..., "mimeType": ...}}`. `parts_to_content` still tolerates the legacy shapes, so old peers keep interoperating.
+
 ## [0.7.1] - 2026-09-25
 
 ### Fixed

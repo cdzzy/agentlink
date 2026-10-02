@@ -80,15 +80,22 @@ def _normalize_state(state: str) -> str:
 # ---------------------------------------------------------------------------
 
 def content_to_part(content: Any) -> Dict[str, Any]:
-    """Convert an AgentMessage ``content`` into one A2A v1.0 ``Part``."""
+    """Convert an AgentMessage ``content`` into one A2A v1.0 ``Part``.
+
+    v1.0 ``Part`` is a discriminated union — every wire part carries a
+    ``kind`` field (``text`` / ``data`` / ``file``).
+    """
     if isinstance(content, str):
-        return {"text": content, "mediaType": "text/plain"}
+        return {"kind": "text", "text": content, "mediaType": "text/plain"}
     if isinstance(content, (dict, list, bool, int, float)) or content is None:
-        return {"data": content, "mediaType": "application/json"}
+        return {"kind": "data", "data": content, "mediaType": "application/json"}
     if isinstance(content, (bytes, bytearray)):
         return {
-            "raw": base64.b64encode(bytes(content)).decode("ascii"),
-            "mediaType": "application/octet-stream",
+            "kind": "file",
+            "file": {
+                "fileWithBytes": base64.b64encode(bytes(content)).decode("ascii"),
+                "mimeType": "application/octet-stream",
+            },
         }
     raise ValueError(
         f"A2A mapping supports JSON-serializable content (str/dict/list/scalars/bytes); "
@@ -115,10 +122,13 @@ def parts_to_content(parts: List[Dict[str, Any]]) -> Any:
             return base64.b64decode(part["raw"])
         elif "url" in part:                                  # v1.0 file reference part
             return {"url": part["url"], "mediaType": part.get("mediaType")}
-        elif part.get("kind") == "file" and "file" in part:  # legacy v0.3 file part
+        elif part.get("kind") == "file" and "file" in part:  # v1.0 file part
             f = part["file"] or {}
-            uri = f.get("fileWithUri", f.get("fileWithBytes"))
-            return {"url": uri, "mediaType": f.get("mimeType")}
+            if "fileWithBytes" in f:
+                return base64.b64decode(f["fileWithBytes"])  # round-trips bytes
+            uri = f.get("fileWithUri")
+            if uri:
+                return {"url": uri, "mediaType": f.get("mimeType")}
     return "\n".join(texts)
 
 
@@ -163,6 +173,7 @@ def agent_message_to_a2a_message(message: AgentMessage) -> Dict[str, Any]:
     metadata[ENVELOPE_METADATA_KEY] = _envelope_dict(message)
 
     out: Dict[str, Any] = {
+        "kind": EVENT_KIND_MESSAGE,
         "messageId": message.id,
         "role": "ROLE_AGENT" if message.type is MessageType.REPLY else "ROLE_USER",
         "parts": [content_to_part(message.content)],
@@ -310,4 +321,138 @@ def _content_from_artifacts(task: Dict[str, Any]) -> Any:
     for artifact in task.get("artifacts") or []:
         if isinstance(artifact, dict) and artifact.get("parts"):
             return parts_to_content(artifact["parts"])
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Streaming events (A2A v1.0 "Send Streaming Message")
+# ---------------------------------------------------------------------------
+
+# ``kind`` discriminators of the v1.0 streaming event model.
+EVENT_KIND_TASK = "task"
+EVENT_KIND_MESSAGE = "message"                    # a plain streamed Message
+EVENT_KIND_STATUS_UPDATE = "status-update"        # TaskStatusUpdateEvent
+EVENT_KIND_ARTIFACT_UPDATE = "artifact-update"    # TaskArtifactUpdateEvent
+
+
+def task_object(message: AgentMessage, state: str = TASK_STATE_SUBMITTED) -> Dict[str, Any]:
+    """
+    Build the initial streamed ``Task`` object (``kind: "task"``) that opens
+    a task-lifecycle stream.
+    """
+    task = agent_message_to_a2a_task(message, state=state)
+    task["kind"] = EVENT_KIND_TASK
+    return task
+
+
+def status_update_event(
+    message: Optional[AgentMessage],
+    state: str,
+    *,
+    task_id: Optional[str] = None,
+    context_id: Optional[str] = None,
+    final: bool = False,
+) -> Dict[str, Any]:
+    """
+    Build an A2A v1.0 ``TaskStatusUpdateEvent`` (``kind: "status-update"``).
+
+    ``message`` (optional) rides in ``status.message`` — the AgentLink
+    envelope inside it keeps streaming chunks lossless. ``final`` marks the
+    closing event of the stream (task reached a terminal state).
+    """
+    status: Dict[str, Any] = {"state": state, "timestamp": now_iso_ms()}
+    if message is not None:
+        status["message"] = agent_message_to_a2a_message(message)
+    return {
+        "kind": EVENT_KIND_STATUS_UPDATE,
+        "taskId": task_id or (message.id if message else str(uuid.uuid4())),
+        "contextId": context_id
+        or (message.correlation_id if message else None)
+        or str(uuid.uuid4()),
+        "status": status,
+        "final": final,
+    }
+
+
+def artifact_update_event(
+    content: Any,
+    *,
+    task_id: str,
+    context_id: str,
+    artifact_name: str = "result",
+    artifact_id: Optional[str] = None,
+    append: bool = False,
+    last_chunk: bool = True,
+    metadata: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """
+    Build an A2A v1.0 ``TaskArtifactUpdateEvent`` (``kind: "artifact-update"``).
+
+    ``content`` is the chunk payload (text or structured data); ``append`` /
+    ``lastChunk`` follow the v1.0 chunking semantics.
+    """
+    return {
+        "kind": EVENT_KIND_ARTIFACT_UPDATE,
+        "taskId": task_id,
+        "contextId": context_id,
+        "artifact": {
+            "artifactId": artifact_id or str(uuid.uuid4()),
+            "name": artifact_name,
+            "parts": [content_to_part(content)],
+            "metadata": dict(metadata or {}),
+        },
+        "append": append,
+        "lastChunk": last_chunk,
+    }
+
+
+def stream_event_to_agent_message(
+    event: Dict[str, Any],
+    *,
+    default_sender: Optional[AgentAddress] = None,
+    default_recipient: Optional[AgentAddress] = None,
+) -> Optional[AgentMessage]:
+    """
+    Decode one streamed event into a reply AgentMessage.
+
+    Resolution:
+      - ``status-update`` with an embedded ``status.message`` → that message
+        (envelope-aware, lossless for AgentLink peers).
+      - ``status-update`` without a message → ``None`` (pure state change,
+        no content to surface).
+      - ``artifact-update`` → a reply carrying the artifact parts.
+      - a plain streamed ``Message`` (``kind: "message"``) → its AgentLink
+        form.
+      - the opening ``Task`` object or an unknown ``kind`` → ``None`` (no
+        incremental content to surface).
+    """
+    kind = event.get("kind")
+    if kind == EVENT_KIND_STATUS_UPDATE:
+        status = event.get("status") or {}
+        msg = status.get("message")
+        if isinstance(msg, dict):
+            return a2a_message_to_agent_message(
+                msg, default_sender=default_sender, default_recipient=default_recipient,
+            )
+        return None
+    if kind == EVENT_KIND_ARTIFACT_UPDATE:
+        artifact = event.get("artifact") or {}
+        content = parts_to_content(artifact.get("parts") or [])
+        task_id = event.get("taskId")
+        return AgentMessage(
+            type=MessageType.REPLY,
+            sender=default_sender or AgentAddress("a2a-agent", "a2a"),
+            recipient=default_recipient or AgentAddress("a2a-client", "a2a"),
+            content=content,
+            id=artifact.get("artifactId") or task_id or str(uuid.uuid4()),
+            correlation_id=event.get("contextId"),
+            metadata=dict(artifact.get("metadata") or {}),
+            content_type="text/plain" if isinstance(content, str) else "application/json",
+        )
+    if kind == EVENT_KIND_MESSAGE or "parts" in event:
+        return a2a_message_to_agent_message(
+            event, default_sender=default_sender, default_recipient=default_recipient,
+        )
+    # The opening Task object (``kind: "task"``) and unknown event kinds
+    # carry no incremental content — skip them.
     return None

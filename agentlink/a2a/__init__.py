@@ -31,6 +31,10 @@ from agentlink.a2a.card import (
 )
 from agentlink.a2a.mapping import (
     ENVELOPE_METADATA_KEY,
+    EVENT_KIND_ARTIFACT_UPDATE,
+    EVENT_KIND_MESSAGE,
+    EVENT_KIND_STATUS_UPDATE,
+    EVENT_KIND_TASK,
     TASK_STATE_AUTH_REQUIRED,
     TASK_STATE_CANCELED,
     TASK_STATE_COMPLETED,
@@ -43,11 +47,15 @@ from agentlink.a2a.mapping import (
     a2a_task_to_agent_message,
     agent_message_to_a2a_message,
     agent_message_to_a2a_task,
+    artifact_update_event,
     content_to_part,
     has_agentlink_envelope,
     is_terminal_state,
     parts_to_content,
+    status_update_event,
+    stream_event_to_agent_message,
     strip_envelope,
+    task_object,
     task_reply_to_a2a_task,
 )
 from agentlink.a2a.transport import A2ATransport, A2ATransportError
@@ -79,6 +87,10 @@ __all__ = [
     "agent_card_url",
     # mapping
     "ENVELOPE_METADATA_KEY",
+    "EVENT_KIND_TASK",
+    "EVENT_KIND_MESSAGE",
+    "EVENT_KIND_STATUS_UPDATE",
+    "EVENT_KIND_ARTIFACT_UPDATE",
     "TASK_STATE_AUTH_REQUIRED",
     "TASK_STATE_CANCELED",
     "TASK_STATE_COMPLETED",
@@ -97,6 +109,10 @@ __all__ = [
     "has_agentlink_envelope",
     "strip_envelope",
     "is_terminal_state",
+    "task_object",
+    "status_update_event",
+    "artifact_update_event",
+    "stream_event_to_agent_message",
     # transport
     "A2ATransport",
     "A2ATransportError",
