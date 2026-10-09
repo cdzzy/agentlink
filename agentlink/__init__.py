@@ -98,7 +98,17 @@ try:
 
     __version__ = _pkg_version("cdzzy-agentlink")
 except Exception:  # noqa: BLE001 — not installed (source checkout)
-    __version__ = "0.8.1"
+    # Source-tree fallback: read pyproject.toml so __version__ can never
+    # drift from the declared package version (no runtime dependency).
+    try:
+        import re
+        from pathlib import Path
+
+        _pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
+        _m = re.search(r'^version\s*=\s*"([^"]+)"', _pyproject.read_text(encoding="utf-8"), re.M)
+        __version__ = _m.group(1) if _m else "0.0.0"
+    except Exception:  # noqa: BLE001
+        __version__ = "0.0.0"
 __all__ = [
     "AgentMessage",
     "MessageType",

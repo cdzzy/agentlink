@@ -2,6 +2,19 @@
 
 All notable changes to AgentLink are documented in this file.
 
+## [Unreleased]
+
+### Changed
+
+- **Python 3.13 classifier**: the declared supported-Python list in
+  `pyproject.toml` now includes 3.13, matching the already-green CI matrix
+  (tests were passing on 3.13 but the classifier advertised only up to 3.12).
+- **`__version__` drift-proofing** (`agentlink/__init__.py`): the source-tree
+  fallback now reads `version` from `pyproject.toml` instead of a hard-coded
+  literal, so a fresh checkout can never report a version that lags the
+  declared package version. Installed environments keep reading the real
+  distribution metadata.
+
 ## [0.8.1] - 2026-10-02
 
 ### Fixed
