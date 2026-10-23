@@ -2,18 +2,34 @@
 
 All notable changes to AgentLink are documented in this file.
 
-## [Unreleased]
+## [0.8.2] - 2026-10-16
+
+### Fixed
+
+- **`__version__` could be poisoned by stale local `*.egg-info` dirs**
+  (`agentlink/__init__.py`): the previous metadata-first resolution returned
+  an old version (e.g. `0.6.0`) on machines carrying leftover develop-install
+  `*.egg-info` folders, even though the checkout was at `0.8.1`. Version
+  resolution now prefers the adjacent `pyproject.toml` (single source of
+  truth) and only falls back to `importlib.metadata` for regular installed
+  copies, so `__version__` can never drift or go stale.
 
 ### Changed
 
 - **Python 3.13 classifier**: the declared supported-Python list in
   `pyproject.toml` now includes 3.13, matching the already-green CI matrix
   (tests were passing on 3.13 but the classifier advertised only up to 3.12).
-- **`__version__` drift-proofing** (`agentlink/__init__.py`): the source-tree
-  fallback now reads `version` from `pyproject.toml` instead of a hard-coded
-  literal, so a fresh checkout can never report a version that lags the
-  declared package version. Installed environments keep reading the real
-  distribution metadata.
+- **Modernized type annotations** in `agentlink/transport.py` and
+  `agentlink/adapters/base.py`: `typing.Dict` / `typing.Optional` /
+  `typing.List` / `typing.Union` were replaced with PEP 585 built-in generics
+  and PEP 604 union syntax (`dict[str, Any]`, `str | None`,
+  `list[str | AgentCapability]`), which are valid on Python 3.9 via
+  `from __future__ import annotations`.
+
+### Added tests
+
+- `tests/test_version.py`: guards that `agentlink.__version__` always equals
+  the `pyproject.toml` version and stays PEP 440-valid.
 
 ## [0.8.1] - 2026-10-02
 

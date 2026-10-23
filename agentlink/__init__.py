@@ -93,22 +93,37 @@ try:
 except ImportError:
     _a2a_verify_available = False
 
-try:
-    from importlib.metadata import version as _pkg_version
-
-    __version__ = _pkg_version("cdzzy-agentlink")
-except Exception:  # noqa: BLE001 — not installed (source checkout)
-    # Source-tree fallback: read pyproject.toml so __version__ can never
-    # drift from the declared package version (no runtime dependency).
+def _version_from_pyproject() -> str:
+    """Read the canonical version from the adjacent pyproject.toml (PEP 621)."""
     try:
         import re
         from pathlib import Path
 
-        _pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
-        _m = re.search(r'^version\s*=\s*"([^"]+)"', _pyproject.read_text(encoding="utf-8"), re.M)
-        __version__ = _m.group(1) if _m else "0.0.0"
+        pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
+        match = re.search(
+            r'^version\s*=\s*"([^"]+)"',
+            pyproject.read_text(encoding="utf-8"),
+            re.M,
+        )
+        return match.group(1) if match else ""
     except Exception:  # noqa: BLE001
-        __version__ = "0.0.0"
+        return ""
+
+
+def _version_from_metadata() -> str:
+    """Fall back to the installed distribution metadata (regular installs)."""
+    try:
+        from importlib.metadata import version as _pkg_version
+
+        return _pkg_version("cdzzy-agentlink")
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+# pyproject.toml is the single source of truth in a source checkout / editable
+# install, so __version__ can never drift from the declared version; regular
+# installed copies (no adjacent pyproject.toml) fall back to dist metadata.
+__version__ = _version_from_pyproject() or _version_from_metadata() or "0.0.0"
 __all__ = [
     "AgentMessage",
     "MessageType",

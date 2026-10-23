@@ -5,7 +5,7 @@ Base adapter — the interface all framework adapters must implement.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional, Union
+from typing import Any
 
 from agentlink.protocol.capability import AgentCapability
 from agentlink.protocol.message import AgentMessage
@@ -28,7 +28,7 @@ class BaseAdapter(ABC):
         self,
         agent_id: str,
         namespace: str = "default",
-        capabilities: Optional[List[Union[str, AgentCapability]]] = None,
+        capabilities: list[str | AgentCapability] | None = None,
         description: str = "",
     ):
         self.agent_id = agent_id

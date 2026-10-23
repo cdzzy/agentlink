@@ -27,17 +27,17 @@ from __future__ import annotations
 import asyncio
 import inspect
 import json
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable
 
 from agentlink.protocol.message import AgentMessage, MessageType
 
 
-def serialize_message(message: AgentMessage) -> Dict[str, Any]:
+def serialize_message(message: AgentMessage) -> dict[str, Any]:
     """Serialize an AgentMessage to a JSON-ready dict."""
     return message.to_dict()
 
 
-def deserialize_message(data: Dict[str, Any]) -> AgentMessage:
+def deserialize_message(data: dict[str, Any]) -> AgentMessage:
     """Reconstruct an AgentMessage from a dict."""
     return AgentMessage.from_dict(data)
 
@@ -52,10 +52,10 @@ class WSTransport:
 
     def __init__(
         self,
-        url: Optional[str] = None,
+        url: str | None = None,
         host: str = "0.0.0.0",
         port: int = 8765,
-        on_message: Optional[Callable[[AgentMessage], Any]] = None,
+        on_message: Callable[[AgentMessage], Any] | None = None,
         reply_timeout: float = 30.0,
     ) -> None:
         self.url = url
@@ -68,7 +68,7 @@ class WSTransport:
 
     # ── Client ─────────────────────────────────────────────────────────────
 
-    async def connect(self, url: Optional[str] = None) -> "WSTransport":
+    async def connect(self, url: str | None = None) -> "WSTransport":
         """Connect to a remote WebSocket server (client mode)."""
         import websockets
 
@@ -122,7 +122,7 @@ class WSTransport:
 
     # ── Send / receive ─────────────────────────────────────────────────────
 
-    async def send(self, message: AgentMessage) -> Optional[AgentMessage]:
+    async def send(self, message: AgentMessage) -> AgentMessage | None:
         """
         Send a message over the WebSocket connection (client mode).
 
@@ -159,7 +159,7 @@ class WSBridge:
         self.bus = bus
         transport.on_message = self._on_message
 
-    async def _on_message(self, message: AgentMessage) -> Optional[Dict[str, Any]]:
+    async def _on_message(self, message: AgentMessage) -> dict[str, Any] | None:
         try:
             reply = self.bus._route(message, timeout=30.0)
             return reply.to_dict() if reply else None
