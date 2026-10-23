@@ -133,14 +133,14 @@ def _public_key_to_jwk(public_key: Any, kid: str, algorithm: str) -> Dict[str, A
             "e": _b64url_uint(numbers.e),
         })
     elif isinstance(public_key, ec.EllipticCurvePublicKey):
-        numbers = public_key.public_numbers()
+        ec_numbers = public_key.public_numbers()
         crv = "P-256" if isinstance(public_key.curve, ec.SECP256R1) else public_key.curve.name
         coord_size = (public_key.curve.key_size + 7) // 8
         jwk.update({
             "kty": "EC",
             "crv": crv,
-            "x": _b64url_uint(numbers.x, coord_size),
-            "y": _b64url_uint(numbers.y, coord_size),
+            "x": _b64url_uint(ec_numbers.x, coord_size),
+            "y": _b64url_uint(ec_numbers.y, coord_size),
         })
     elif isinstance(public_key, ed25519.Ed25519PublicKey):
         raw = public_key.public_bytes(Encoding.Raw, PublicFormat.Raw)
@@ -187,11 +187,11 @@ def generate_signing_key(
     elif algorithm == "RS256":
         from cryptography.hazmat.primitives.asymmetric import rsa
 
-        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)  # type: ignore[assignment]  # cryptography key-union
     else:  # EdDSA
         from cryptography.hazmat.primitives.asymmetric import ed25519
 
-        key = ed25519.Ed25519PrivateKey.generate()
+        key = ed25519.Ed25519PrivateKey.generate()  # type: ignore[assignment]  # cryptography key-union
 
     private_pem = key.private_bytes(
         encoding=serialization.Encoding.PEM,

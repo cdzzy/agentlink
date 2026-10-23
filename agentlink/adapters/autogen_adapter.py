@@ -114,7 +114,7 @@ class AutoGenAdapter(BaseAdapter):
         assistant_agent: Any,
         agent_id: str,
         initiator: Any,
-        capabilities: Optional[List[str]] = None,
+        capabilities: Optional[List[Union[str, AgentCapability]]] = None,
         namespace: str = "default",
         **kwargs,
     ) -> "AutoGenAdapter":

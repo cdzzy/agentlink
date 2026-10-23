@@ -28,7 +28,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from agentlink.adapters.base import BaseAdapter
 from agentlink.protocol.capability import AgentCapability
-from agentlink.protocol.message import AgentMessage, MessageType
+from agentlink.protocol.message import AgentAddress, AgentMessage, MessageType
 from agentlink.runtime.node import AgentNode
 
 # ---------------------------------------------------------------------------
@@ -241,7 +241,7 @@ class A2AAdapter(BaseAdapter):
             raise
 
     @classmethod
-    def discover_and_wrap(
+    async def discover_and_wrap(
         cls,
         agent_url: str,
         timeout: float = 10.0,
@@ -253,7 +253,7 @@ class A2AAdapter(BaseAdapter):
         Fetches the agent card, then creates an A2AAdapter with
         the discovered metadata.
         """
-        card = cls.get_agent_card(agent_url, timeout)
+        card = await cls.get_agent_card(agent_url, timeout)
         return cls(
             agent_url=agent_url,
             agent_id=card.name,
@@ -351,12 +351,16 @@ class A2AServerAdapter:
         # Convert to AgentLink message
         msg = AgentMessage(
             type=MessageType.REQUEST,
+            sender=AgentAddress.parse("a2a"),
+            recipient=AgentAddress.local(self.node.agent_id),
             content=content,
             metadata={"a2a_role": role, "source": "a2a"},
         )
 
         try:
-            reply = self.node.send_sync(msg)
+            reply = self.node._receive(msg)
+            if reply is None:
+                return json.dumps(a2a_error(-32603, "Agent did not reply", request_id)).encode()
             result = {
                 "content": reply.content,
                 "metadata": reply.metadata or {},

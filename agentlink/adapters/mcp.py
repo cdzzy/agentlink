@@ -188,7 +188,7 @@ class JsonRpcRequest:
     jsonrpc: str = "2.0"
 
     def to_dict(self) -> dict:
-        d = {"jsonrpc": self.jsonrpc, "method": self.method}
+        d: dict[str, Any] = {"jsonrpc": self.jsonrpc, "method": self.method}
         if self.params is not None:
             d["params"] = self.params
         if self.req_id is not None:

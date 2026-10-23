@@ -29,7 +29,7 @@ from __future__ import annotations
 import threading
 from typing import Iterable, Iterator, Optional
 
-from agentlink.protocol.message import AgentMessage, MessageType
+from agentlink.protocol.message import AgentAddress, AgentMessage, MessageType
 
 
 class StreamResult:
@@ -107,8 +107,8 @@ def is_streamable(value: object) -> bool:
 def stream_message(
     msg_type: MessageType,
     correlation_id: str,
-    sender: object,
-    recipient: object,
+    sender: AgentAddress,
+    recipient: AgentAddress,
     content: object = None,
 ) -> AgentMessage:
     """Build a STREAM_* message addressed back to the original sender."""

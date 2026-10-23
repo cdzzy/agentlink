@@ -2,6 +2,46 @@
 
 All notable changes to AgentLink are documented in this file.
 
+## [0.8.3] - 2026-10-23
+
+### Fixed
+
+- **A2A discovery never awaited the agent card fetch**
+  (`agentlink/adapters/a2a_adapter.py`): `A2AAdapter.discover_and_wrap()` called
+  the async `get_agent_card()` without `await`, so `card.name` crashed at
+  runtime. The method is now `async def` and awaits the card fetch.
+- **A2A `agent/sendMessage` crashed before reaching the node**
+  (`agentlink/adapters/a2a_adapter.py`): the forwarded `AgentMessage` omitted
+  the required `sender`/`recipient` fields (raising `TypeError`), and the node
+  was invoked via a non-existent `send_sync` method (`AttributeError`). The
+  server now builds a properly-addressed message, routes it through the node's
+  message handler, and reports "no reply" instead of crashing.
+- **`HubRegistry.all_live()` advertised the wrong return type**
+  (`agentlink/hub.py`): it declared `List[Registration]` but returned serialized
+  dicts; callers (`discover`, the hub HTTP endpoint) index them as dicts. The
+  annotation now matches the actual `List[Dict[str, Any]]`.
+- **WebSocket transport type errors** (`agentlink/transport.py`): the
+  connection/server slots were inferred as `None`, and error replies passed
+  bare strings where `AgentAddress` is required; both are now explicitly typed /
+  parsed addresses.
+
+### Changed
+
+- **mypy now runs in CI** (`.github/workflows/ci.yml`): the type checker was
+  configured in `pyproject.toml` but never executed. The lint job now installs
+  mypy and checks the `agentlink` package. `[tool.mypy]` moves to
+  `python_version = "3.10"` (the mypy 2.x floor; 3.9 runtime compat is kept via
+  `from __future__ import annotations`).
+- **Type-correctness fixes across adapters**: `LangGraphAdapter`/`CrewAIAdapter`/
+  `AutoGenAdapter` now declare `capabilities` as
+  `Optional[List[Union[str, AgentCapability]]]` (matching `BaseAdapter`), the
+  JWK converter uses a branch-local `ec_numbers` name instead of reusing the RSA
+  variable, and RSA/EdDSA key generation carries a scoped
+  `# type: ignore[assignment]` for the cryptography key-union.
+- **CI concurrency guard & least privilege** (`.github/workflows/ci.yml`):
+  push/PR runs now cancel stale in-progress runs for the same ref and the
+  workflow only requests `contents: read`.
+
 ## [0.8.2] - 2026-10-16
 
 ### Fixed

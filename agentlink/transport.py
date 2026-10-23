@@ -29,7 +29,7 @@ import inspect
 import json
 from typing import Any, Callable
 
-from agentlink.protocol.message import AgentMessage, MessageType
+from agentlink.protocol.message import AgentAddress, AgentMessage, MessageType
 
 
 def serialize_message(message: AgentMessage) -> dict[str, Any]:
@@ -63,8 +63,8 @@ class WSTransport:
         self.port = port
         self.on_message = on_message
         self.reply_timeout = reply_timeout
-        self._connection = None
-        self._server = None
+        self._connection: Any = None
+        self._server: Any = None
 
     # ── Client ─────────────────────────────────────────────────────────────
 
@@ -104,8 +104,8 @@ class WSTransport:
             except Exception:  # noqa: BLE001 — malformed frames must not kill the handler
                 error = AgentMessage(
                     type=MessageType.ERROR,
-                    sender="transport",
-                    recipient=self.url or "unknown",
+                    sender=AgentAddress.parse("transport"),
+                    recipient=AgentAddress.parse(self.url or "unknown"),
                     content={"error": "malformed message frame"},
                 )
                 await websocket.send(json.dumps(serialize_message(error)))

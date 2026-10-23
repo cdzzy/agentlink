@@ -115,7 +115,7 @@ class LangGraphAdapter(BaseAdapter):
         cls,
         graph: Any,
         agent_id: str,
-        capabilities: Optional[List[str]] = None,
+        capabilities: Optional[List[Union[str, AgentCapability]]] = None,
         namespace: str = "default",
         **kwargs,
     ) -> "LangGraphAdapter":

@@ -141,7 +141,7 @@ class HubRegistry:
             del self._registrations[agent_id]
             return True
 
-    def all_live(self) -> List[Registration]:
+    def all_live(self) -> List[Dict[str, Any]]:
         with self._lock:
             self._purge_expired()
             return [reg.public_dict() for reg in self._registrations.values()]
@@ -364,7 +364,7 @@ class HubClient:
             body = getattr(err, "read", None)
             if body is not None:
                 try:
-                    return json.loads(err.read())
+                    return json.loads(body())
                 except Exception:
                     pass
             raise

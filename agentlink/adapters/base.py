@@ -49,7 +49,7 @@ class BaseAdapter(ABC):
         if isinstance(raw, str):
             return raw
         if isinstance(raw, dict):
-            return raw.get("output", raw.get("response", raw.get("content", str(raw))))
+            return str(raw.get("output") or raw.get("response") or raw.get("content") or raw)
         return str(raw) if raw is not None else ""
 
     def as_node(self) -> AgentNode:
