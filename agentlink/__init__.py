@@ -68,14 +68,20 @@ from agentlink.transport import WSBridge, WSTransport, deserialize_message, seri
 try:
     from agentlink.adapters.fastmcp_adapter import FastMCPServer, fast_expose_bus  # noqa: F401
     from agentlink.adapters.mcp import (  # noqa: F401
+        MCP_PROTOCOL_HEADER,
+        MCP_SESSION_HEADER,
         MCPAdapter,
         MCPAgentNodeMixin,
         MCPConnectionError,
         MCPError,
         MCPResource,
+        MCPServerAdapter,
         MCPTool,
         MCPToolError,
+        create_mcp_app,
         create_mcp_bridge,
+        create_streamable_mcp_app,
+        expose_bus_as_mcp,
     )
     _mcp_available = True
 except ImportError:
@@ -191,9 +197,15 @@ if _mcp_available:
     __all__.extend([
         "MCPAdapter",
         "MCPAgentNodeMixin",
+        "MCPServerAdapter",
         "MCPTool",
         "MCPResource",
         "create_mcp_bridge",
+        "create_mcp_app",
+        "create_streamable_mcp_app",
+        "expose_bus_as_mcp",
+        "MCP_SESSION_HEADER",
+        "MCP_PROTOCOL_HEADER",
         "MCPError",
         "MCPConnectionError",
         "MCPToolError",

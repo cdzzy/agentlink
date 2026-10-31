@@ -26,6 +26,7 @@ Usage (Server):
 from __future__ import annotations
 
 import json
+import time
 import uuid
 from dataclasses import dataclass
 from enum import IntEnum
@@ -402,7 +403,7 @@ class MCPServerAdapter:
     async def _handle_ping(self, params: dict) -> dict:
         return {}
 
-    async def _handle_tools_list(self, params: dict) -> list:
+    async def _handle_tools_list(self, params: dict) -> dict:
         cursor = params.get("cursor")
         tools = [
             {
@@ -419,7 +420,11 @@ class MCPServerAdapter:
                 tools = tools[idx:]
             except (ValueError, TypeError):
                 pass
-        return tools
+        # MCP spec: tools/list returns an object with a `tools` array, not a
+        # bare array. The client side (MCPAdapter.list_tools) already expects
+        # this shape, so returning the raw list made server and client
+        # disagree.
+        return {"tools": tools}
 
     async def _handle_tools_call(self, params: dict) -> dict:
         name = params.get("name", "")
@@ -434,28 +439,37 @@ class MCPServerAdapter:
             return result.to_dict()
         return {"content": [str(result)], "isError": False}
 
-    async def _handle_resources_list(self, params: dict) -> list:
-        return [
-            {"uri": uri, **info}
-            for uri, info in self._resource_registry.items()
-        ]
+    async def _handle_resources_list(self, params: dict) -> dict:
+        # MCP spec: `resources` wrapper, not a bare array.
+        return {
+            "resources": [
+                {"uri": uri, **info}
+                for uri, info in self._resource_registry.items()
+            ]
+        }
 
-    async def _handle_resources_read(self, params: dict) -> list:
+    async def _handle_resources_read(self, params: dict) -> dict:
         uri = params.get("uri", "")
         resource = self._resource_registry.get(uri)
         if not resource:
             raise MCPError(f"Resource not found: {uri}")
         contents = resource.get("contents", "")
         mime_type = resource.get("mime_type", resource.get("mimeType", "text/plain"))
-        return [{
-            "uri": uri,
-            "mimeType": mime_type,
-            "text": contents,
-            "type": "text",
-        }]
+        # MCP spec: `contents` wrapper, not a bare array.
+        return {
+            "contents": [
+                {
+                    "uri": uri,
+                    "mimeType": mime_type,
+                    "text": contents,
+                    "type": "text",
+                }
+            ]
+        }
 
-    async def _handle_prompts_list(self, params: dict) -> list:
-        return list(self._prompt_registry.values())
+    async def _handle_prompts_list(self, params: dict) -> dict:
+        # MCP spec: `prompts` wrapper, not a bare array.
+        return {"prompts": list(self._prompt_registry.values())}
 
     async def _handle_prompts_get(self, params: dict) -> dict:
         name = params.get("name", "")
@@ -818,3 +832,199 @@ def create_mcp_bridge(agent_node, mcp_url: str) -> MCPAdapter:
             agent_node.add_capability(capability)
 
     return adapter
+
+
+# ─── Streamable HTTP transport (2025-03-26+ spec) ──────────────
+
+MCP_SESSION_HEADER = "Mcp-Session-Id"
+MCP_PROTOCOL_HEADER = "MCP-Protocol-Version"
+
+
+def create_streamable_mcp_app(
+    server: MCPServerAdapter,
+    path: str = "/mcp",
+    *,
+    session_required: bool = False,
+):
+    """
+    Create an aiohttp app implementing the MCP **Streamable HTTP** transport.
+
+    This is the transport modern MCP clients (Claude Desktop, Cursor, MCP
+    Inspector, ...) expect, as defined by the 2025-03-26 spec revision and
+    refined through 2025-11-25. It differs from :func:`create_mcp_app` (plain
+    JSON-RPC over POST) in four ways:
+
+    1. **Content negotiation** — a ``POST`` reply is sent as
+       ``application/json`` by default, or as a ``text/event-stream`` frame
+       when the client's ``Accept`` header only accepts SSE.
+    2. **Session management** — ``initialize`` mints a ``Mcp-Session-Id`` that
+       is returned in the response header and expected on every follow-up
+       request. ``DELETE`` terminates it.
+    3. **SSE channel** — ``GET`` with ``Accept: text/event-stream`` opens a
+       server-to-client stream for a known session; a plain ``GET`` returns
+       server metadata instead.
+    4. **CORS** — ``OPTIONS`` preflight is answered so browser-based clients
+       can connect.
+
+    Args:
+        server: The :class:`MCPServerAdapter` whose tool/resource/prompt
+            registries back the endpoint.
+        path: Endpoint path (default ``/mcp``). Clients POST here.
+        session_required: When true, every non-``initialize`` request must
+            carry a valid ``Mcp-Session-Id``. Left false by default so simple
+            clients that skip sessions still work.
+
+    Returns:
+        An ``aiohttp.web.Application``.
+
+    Example::
+
+        from aiohttp import web
+        from agentlink.adapters.mcp import (
+            MCPServerAdapter, create_streamable_mcp_app,
+        )
+
+        server = MCPServerAdapter(server_name="my-agent")
+        server.register_tool("search", "Search data", {}, my_handler)
+
+        app = create_streamable_mcp_app(server)
+        web.run_app(app, port=8000)   # MCP endpoint: http://localhost:8000/mcp
+    """
+    from aiohttp import web
+
+    sessions: dict[str, float] = {}
+
+    def _json_rpc_error(http_status: int, code: McpErrorCode, message: str, req_id=None):
+        return web.json_response(
+            {
+                "jsonrpc": "2.0",
+                "error": {"code": int(code), "message": message},
+                "id": req_id,
+            },
+            status=http_status,
+        )
+
+    def _sse_frame(payload: dict, session_id: Optional[str]) -> web.Response:
+        body = f"event: message\ndata: {json.dumps(payload)}\n\n".encode("utf-8")
+        headers = {"Content-Type": "text/event-stream", "Cache-Control": "no-cache"}
+        if session_id:
+            headers[MCP_SESSION_HEADER] = session_id
+        return web.Response(body=body, headers=headers)
+
+    def _accepted(session_id: Optional[str]) -> web.Response:
+        headers = {MCP_SESSION_HEADER: session_id} if session_id else {}
+        return web.Response(status=202, headers=headers)
+
+    async def handle_post(request: web.Request) -> web.Response:
+        try:
+            body = await request.json()
+        except Exception:
+            return _json_rpc_error(400, McpErrorCode.PARSE_ERROR, "Invalid JSON")
+
+        if not isinstance(body, dict):
+            return _json_rpc_error(
+                400, McpErrorCode.INVALID_REQUEST, "Expected a JSON object"
+            )
+
+        method = body.get("method")
+        session_id = request.headers.get(MCP_SESSION_HEADER)
+
+        if method != "initialize":
+            if session_id is not None and session_id not in sessions:
+                return _json_rpc_error(
+                    404,
+                    McpErrorCode.INVALID_REQUEST,
+                    f"Unknown session '{session_id}'",
+                    body.get("id"),
+                )
+            if session_required and session_id is None:
+                return _json_rpc_error(
+                    400,
+                    McpErrorCode.INVALID_REQUEST,
+                    "Missing Mcp-Session-Id header",
+                    body.get("id"),
+                )
+
+        result = await server.handle_message(body)
+
+        # Notifications and client-side responses carry no reply body.
+        if result is None:
+            return _accepted(session_id)
+
+        if method == "initialize":
+            session_id = str(uuid.uuid4())
+            sessions[session_id] = time.time()
+
+        if "text/event-stream" in request.headers.get("Accept", ""):
+            return _sse_frame(result, session_id)
+
+        response = web.json_response(result)
+        if session_id:
+            response.headers[MCP_SESSION_HEADER] = session_id
+        return response
+
+    async def handle_get(request: web.Request) -> web.StreamResponse:
+        if "text/event-stream" not in request.headers.get("Accept", ""):
+            return web.json_response(
+                {
+                    "name": server.server_name,
+                    "version": "0.1.0",
+                    "protocolVersion": server.protocol_version,
+                    "transport": "streamable-http",
+                    "endpoint": path,
+                    "activeSessions": len(sessions),
+                }
+            )
+
+        session_id = request.headers.get(MCP_SESSION_HEADER)
+        if session_id is None or session_id not in sessions:
+            return _json_rpc_error(
+                400, McpErrorCode.INVALID_REQUEST, "Missing or unknown Mcp-Session-Id"
+            )
+
+        # Open the server-to-client channel and close it immediately: this
+        # server is request/response driven, so the stream exists to satisfy
+        # transport conformance without leaving a dangling long-poll.
+        response = web.StreamResponse(
+            headers={
+                "Content-Type": "text/event-stream",
+                "Cache-Control": "no-cache",
+                MCP_SESSION_HEADER: session_id,
+            }
+        )
+        await response.prepare(request)
+        await response.write(b": stream-open\n\n")
+        await response.write_eof()
+        return response
+
+    async def handle_delete(request: web.Request) -> web.Response:
+        session_id = request.headers.get(MCP_SESSION_HEADER)
+        if session_id is None:
+            return _json_rpc_error(
+                400, McpErrorCode.INVALID_REQUEST, "Missing Mcp-Session-Id header"
+            )
+        if sessions.pop(session_id, None) is None:
+            return _json_rpc_error(
+                404, McpErrorCode.INVALID_REQUEST, f"Unknown session '{session_id}'"
+            )
+        return web.Response(status=204)
+
+    async def handle_options(request: web.Request) -> web.Response:
+        return web.Response(
+            status=204,
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+                "Access-Control-Allow-Headers": (
+                    f"Content-Type, Accept, {MCP_SESSION_HEADER}, {MCP_PROTOCOL_HEADER}"
+                ),
+                "Access-Control-Expose-Headers": MCP_SESSION_HEADER,
+            },
+        )
+
+    app = web.Application()
+    app.router.add_post(path, handle_post)
+    app.router.add_get(path, handle_get)
+    app.router.add_delete(path, handle_delete)
+    app.router.add_options(path, handle_options)
+    return app

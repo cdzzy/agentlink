@@ -425,6 +425,56 @@ MCP solves "model → tool". AgentLink solves "agent → agent".
 
 ---
 
+## Exposing Agents as an MCP Server
+
+AgentLink can also go the other direction: expose a fleet of agents to any MCP
+client (Claude Desktop, Cursor, MCP Inspector, ...) over the **Streamable HTTP**
+transport defined by the MCP 2025-03-26 spec.
+
+```python
+from aiohttp import web
+from agentlink import MCPServerAdapter, create_streamable_mcp_app, expose_bus_as_mcp
+
+# Turn a bus into an MCP server: send / ping / list_agents / bus_stats tools
+server = expose_bus_as_mcp(bus, server_name="my-fleet")
+
+# Or register tools by hand
+async def search(**kwargs):
+    return ToolResult.make([{"type": "text", "text": await do_search(kwargs["q"])}])
+
+server.register_tool("search", "Search the knowledge base",
+                     {"type": "object", "properties": {"q": {"type": "string"}}}, search)
+
+app = create_streamable_mcp_app(server)
+web.run_app(app, port=8000)     # MCP endpoint: http://localhost:8000/mcp
+```
+
+**What the transport does**
+
+- **Content negotiation** — replies are `application/json` by default, or an
+  SSE `event: message` frame when the client only accepts `text/event-stream`.
+- **Sessions** — `initialize` mints an `Mcp-Session-Id`, returned in the
+  response header and expected on follow-up requests; `DELETE` terminates it.
+  Unknown session ids get a `404`, and `session_required=True` rejects requests
+  that omit the header entirely.
+- **SSE channel** — `GET` with `Accept: text/event-stream` opens the
+  server-to-client stream for a known session; a plain `GET` returns server
+  metadata instead.
+- **CORS** — `OPTIONS` preflight is answered so browser-based clients work.
+- **Spec-shaped payloads** — `tools/list`, `resources/list`, `prompts/list`
+  and `resources/read` return the `{"tools" / "resources" / "prompts" /
+  "contents": [...]}` wrappers the spec requires. This also fixes a real bug:
+  `MCPAdapter.list_tools()` on the client side already expected
+  `{"tools": [...]}` while the server emitted a bare array, so client and
+  server disagreed.
+
+`create_mcp_app(server)` still exists and serves plain JSON-RPC over POST for
+minimal setups; `create_streamable_mcp_app` is the spec-complete one.
+
+Requires `pip install cdzzy-agentlink[mcp]` (aiohttp).
+
+---
+
 ## Roadmap
 
 - [x] Async support (`async def` handlers) ✅ (examples/05_async_streaming.py)

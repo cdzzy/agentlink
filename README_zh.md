@@ -253,7 +253,7 @@ class MyAgent:
 | 框架无关 | ✅ | ❌ | ❌ | ❌ |
 | 消息类型安全 | ✅ | ❌ | ❌ | 部分 |
 | 死信队列 | ✅ | ❌ | ❌ | ❌ |
-| MCP 兼容 | 🔄 | ❌ | ❌ | ❌ |
+| MCP 兼容 | ✅ | ❌ | ❌ | ❌ |
 | 持久化 | ✅ | 部分 | ❌ | ❌ |
 | 消息追踪 | ✅ | 部分 | ❌ | 部分 |
 
@@ -261,7 +261,7 @@ class MyAgent:
 
 ## 路线图
 
-- [ ] MCP（Model Context Protocol）兼容层 —— 作为 MCP Server 暴露接口
+- [x] **MCP（Model Context Protocol）兼容层** —— 作为 MCP Server 暴露接口（`create_streamable_mcp_app`：Streamable HTTP transport，JSON/SSE 协商、`Mcp-Session-Id` 会话、DELETE 终止、CORS）✅ (v0.9.0)
 - [ ] A2A（Agent2Agent）v0.3 协议适配
 - [ ] 服务发现（Consul/Etcd 后端）
 - [ ] 消息加密传输

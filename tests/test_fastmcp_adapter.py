@@ -236,7 +236,8 @@ class TestFastMCPServerDispatch:
         req = {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}
         resp = await s.handle_message(req)
         assert resp is not None
-        tools = resp["result"]
+        # MCP spec: tools/list returns {"tools": [...]}, not a bare array.
+        tools = resp["result"]["tools"]
         assert any(t["name"] == "ping" for t in tools)
 
     @pytest.mark.asyncio

@@ -2,6 +2,59 @@
 
 All notable changes to AgentLink are documented in this file.
 
+## [0.9.0] - 2026-11-01
+
+### Added
+
+- **MCP Streamable HTTP transport** (`create_streamable_mcp_app`): the MCP
+  server side now implements the transport modern MCP clients (Claude
+  Desktop, Cursor, MCP Inspector) expect, per the 2025-03-26 spec revision
+  and refined through 2025-11-25. `create_mcp_app` (plain JSON-RPC over POST)
+  is unchanged for minimal setups.
+  - **Content negotiation** — `POST` replies as `application/json` by
+    default, or as an `event: message` SSE frame when the client's `Accept`
+    only allows `text/event-stream`.
+  - **Session management** — `initialize` mints an `Mcp-Session-Id` returned
+    in the response header and required on follow-up requests. Unknown ids
+    yield `404`, `DELETE` terminates a session (`204`), and
+    `session_required=True` rejects requests that omit the header. Sessions
+    are per-app, so one process can serve several clients.
+  - **SSE channel** — `GET` with `Accept: text/event-stream` opens the
+    server-to-client stream for a known session; a plain `GET` returns server
+    metadata.
+  - **CORS** — `OPTIONS` preflight answered with the MCP headers exposed, so
+    browser-based clients can connect.
+  - `session_required` and a custom endpoint `path` are configurable;
+    `MCP_SESSION_HEADER` / `MCP_PROTOCOL_HEADER` constants are exported.
+
+### Fixed
+
+- **`tools/list` (and siblings) violated the MCP spec shape** — the server
+  returned a bare array while `MCPAdapter.list_tools()` on the client side
+  already expected `{"tools": [...]}`, so server and client disagreed.
+  `tools/list`, `resources/list`, `prompts/list` and `resources/read` now
+  return the spec-required `{"tools" | "resources" | "prompts" | "contents":
+  [...]}` wrappers. A spec-compliant MCP client can now parse the responses.
+
+### Changed
+
+- **New optional extra** `mcp` (`pip install cdzzy-agentlink[mcp]`) declaring
+  `aiohttp>=3.9`, which `create_mcp_app` / `create_streamable_mcp_app` need.
+  It was previously an undeclared implicit dependency. Also added to `all`.
+- `agentlink/__init__.py` now exports the server surface:
+  `MCPServerAdapter`, `create_mcp_app`, `create_streamable_mcp_app`,
+  `expose_bus_as_mcp`, `MCP_SESSION_HEADER`, `MCP_PROTOCOL_HEADER`.
+- README (both languages) gained an "Exposing Agents as an MCP Server"
+  section; the Chinese roadmap item for MCP compatibility is marked done.
+
+### Testing
+
+- 18 new tests (`tests/test_mcp_streamable_http.py`): session lifecycle,
+  content negotiation, SSE channel, CORS, and JSON-RPC error paths.
+- `tests/test_fastmcp_adapter.py` updated for the spec-shaped `tools/list`.
+- Full suite: **277 passed, 14 skipped**; `ruff check .` and `mypy agentlink`
+  clean.
+
 ## [0.8.3] - 2026-10-23
 
 ### Fixed
