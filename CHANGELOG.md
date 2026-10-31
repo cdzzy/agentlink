@@ -38,6 +38,13 @@ All notable changes to AgentLink are documented in this file.
 
 ### Changed
 
+- **Minimum supported Python is now 3.10** (`requires-python = ">=3.10"`).
+  Python 3.9 reached end-of-life on 2025-10-31 and GitHub's
+  `actions/python-versions` no longer publishes 3.9 builds, so the CI
+  matrix's `setup-python` step for 3.9 fails to provision an interpreter.
+  The 3.9 classifier was dropped and the CI matrix is now
+  3.10 / 3.11 / 3.12 / 3.13. The code itself was already 3.9-compatible, so
+  no API changes result.
 - **New optional extra** `mcp` (`pip install cdzzy-agentlink[mcp]`) declaring
   `aiohttp>=3.9`, which `create_mcp_app` / `create_streamable_mcp_app` need.
   It was previously an undeclared implicit dependency. Also added to `all`.

@@ -37,7 +37,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        # Python 3.9 reached end-of-life on 2025-10-31 and GitHub's
+        # actions/python-versions no longer publishes 3.9 builds, so the
+        # setup-python step cannot provision it.
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
 
     steps:
       - uses: actions/checkout@v4
