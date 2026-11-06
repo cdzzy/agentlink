@@ -246,6 +246,83 @@ class MyAgent:
 
 ---
 
+## AG-UI：把智能体流式推到人面前
+
+MCP 解决「模型 → 工具」，A2A 解决「智能体 → 智能体」，AG-UI 解决第三条腿
+——「智能体 → 人」。AgentLink 现在实现了 [AG-UI 1.0](https://docs.ag-ui.com)
+的生产端，任何 AG-UI 客户端（CopilotKit、自定义前端）都能实时渲染运行过程，
+并支持人工审批。
+
+**一行代码暴露流式端点**
+
+```python
+from aiohttp import web
+from agentlink import AgentNode, create_ag_ui_app, expose_node_as_ag_ui
+
+node = AgentNode("assistant", lambda message: ["思考中", "……", "完成"])
+
+app = create_ag_ui_app(expose_node_as_ag_ui(node))
+web.run_app(app, port=8000)      # POST / 接收 RunAgentInput，返回 SSE
+```
+
+处理器返回的可迭代对象会逐块变成 `TEXT_MESSAGE_CONTENT`，外层自动补
+`RUN_STARTED` / `TEXT_MESSAGE_START` / `RUN_FINISHED`；如果处理器直接 yield
+已构造好的 AG-UI 事件字典，则原样透传，保留完全控制权。
+
+**手工发射事件**（步骤、工具调用、状态）
+
+```python
+from agentlink import AGUIEmitter
+
+emitter = AGUIEmitter(thread_id="t-1", run_id="r-1")
+yield emitter.run_started()
+yield emitter.tool_call_start("search", "tc-1")
+yield emitter.tool_call_args('{"q": "agents"}', "tc-1")
+yield emitter.tool_call_end("tc-1")
+yield emitter.tool_call_result("3 条结果", "tc-1")
+start = emitter.text_message_start()
+yield start
+yield emitter.text_message_content("这是答案", start["messageId"])
+yield emitter.text_message_end()
+yield emitter.run_finished(result="这是答案")
+```
+
+`AGUIEmitter` 覆盖生命周期、文本、工具调用、状态（`STATE_SNAPSHOT` /
+`STATE_DELTA` / `MESSAGES_SNAPSHOT`）、推理以及 `RAW` / `CUSTOM` 事件；
+`emitter.emit(type, **payload)` 可触达 1.0 事件目录的其余部分。事件间自动
+追踪 id，非法调用（未开始就发内容、空 delta、未知工具调用）会报错或丢弃，
+而不是发出不合规的帧。
+
+**人在环（中断审批）**
+
+```python
+from agentlink import AGUI_APPROVAL_SCHEMA, AGUIInterruptManager
+
+manager = AGUIInterruptManager()
+interrupt = manager.create(
+    reason="tool_call",
+    message="给 a@b.com 发送这封邮件？",
+    tool_call_id="tc-1",
+    response_schema=AGUI_APPROVAL_SCHEMA,   # {approved: bool, editedArgs?: object}
+)
+yield emitter.run_finished(outcome=manager.outcome())
+
+# 下一次运行，从 RunAgentInput["resume"] 恢复：
+manager.resolve({
+    "interruptId": interrupt.id,
+    "status": "resolved",                    # 或 "cancelled"
+    "payload": {"approved": True},
+})
+```
+
+`AGUIInterruptManager` 会强制校验：未知 id、已过期（`expiresAt`）、非法状态、
+不符合 `responseSchema` 的 payload，都会抛出 `AGUIResumeError`，不会静默恢复。
+
+SSE 端点需要 `pip install cdzzy-agentlink[agui]`（aiohttp）；事件发射器与
+中断管理器零依赖。
+
+---
+
 ## 对比同类方案
 
 | 功能 | agentlink | LangGraph | CrewAI | AutoGen |
@@ -262,6 +339,7 @@ class MyAgent:
 ## 路线图
 
 - [x] **MCP（Model Context Protocol）兼容层** —— 作为 MCP Server 暴露接口（`create_streamable_mcp_app`：Streamable HTTP transport，JSON/SSE 协商、`Mcp-Session-Id` 会话、DELETE 终止、CORS）✅ (v0.9.0)
+- [x] **AG-UI 1.0 生产端** —— `AGUIEmitter` 事件流、SSE 端点、中断式人工审批、`expose_node_as_ag_ui` 桥接 ✅ (v0.10.0)
 - [ ] A2A（Agent2Agent）v0.3 协议适配
 - [ ] 服务发现（Consul/Etcd 后端）
 - [ ] 消息加密传输

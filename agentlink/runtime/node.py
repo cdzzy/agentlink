@@ -194,6 +194,22 @@ class AgentNode:
 
     # ── Public API ────────────────────────────────────────────────────────
 
+    def invoke(self, message: AgentMessage) -> Any:
+        """
+        Invoke the underlying handler directly, bypassing bus routing.
+
+        Useful for protocol adapters (AG-UI, MCP, HTTP) that need the raw
+        handler output — including a generator of streaming chunks — rather
+        than a normalised reply message.
+
+        Args:
+            message: The message to pass to the handler.
+
+        Returns:
+            Whatever the handler returns (str, dict, iterable, awaitable, ...).
+        """
+        return self._handler(message)
+
     def send(
         self,
         recipient: Union[str, AgentAddress],

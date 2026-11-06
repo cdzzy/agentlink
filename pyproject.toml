@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cdzzy-agentlink"
-version = "0.9.0"
+version = "0.10.0"
 description = "The inter-agent communication protocol. Like HTTP for web services, but for AI agents."
 readme = "README.md"
 license = {text = "MIT"}
@@ -55,6 +55,9 @@ websocket = [
     "websockets>=12.0",
 ]
 mcp = [
+    "aiohttp>=3.9",
+]
+agui = [
     "aiohttp>=3.9",
 ]
 security = [

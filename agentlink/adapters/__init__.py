@@ -15,6 +15,20 @@ from agentlink.adapters.a2a_adapter import (
     a2a_request,
     a2a_response,
 )
+from agentlink.adapters.ag_ui import (
+    AGUI_APPROVAL_SCHEMA,
+    AGUI_PROTOCOL_VERSION,
+    AGUIEmitter,
+    AGUIError,
+    AGUIEventType,
+    AGUIInterrupt,
+    AGUIInterruptManager,
+    AGUIResume,
+    AGUIResumeError,
+    create_ag_ui_app,
+    expose_node_as_ag_ui,
+    last_user_text,
+)
 from agentlink.adapters.autogen_adapter import AutoGenAdapter
 from agentlink.adapters.base import BaseAdapter
 from agentlink.adapters.crewai_adapter import CrewAIAdapter
@@ -42,6 +56,19 @@ __all__ = [
     "a2a_request",
     "a2a_response",
     "a2a_error",
+    # AG-UI Protocol
+    "AGUI_PROTOCOL_VERSION",
+    "AGUIEventType",
+    "AGUIEmitter",
+    "AGUIInterrupt",
+    "AGUIInterruptManager",
+    "AGUIResume",
+    "AGUI_APPROVAL_SCHEMA",
+    "AGUIError",
+    "AGUIResumeError",
+    "create_ag_ui_app",
+    "expose_node_as_ag_ui",
+    "last_user_text",
 ]
 
 if _fastmcp_available:

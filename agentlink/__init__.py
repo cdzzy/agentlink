@@ -39,6 +39,20 @@ from agentlink.a2a import (
     agent_message_to_a2a_task,
 )
 from agentlink.a2a.card import AGENT_CARD_WELLKNOWN_PATH
+from agentlink.adapters.ag_ui import (
+    AGUI_APPROVAL_SCHEMA,
+    AGUI_PROTOCOL_VERSION,
+    AGUIEmitter,
+    AGUIError,
+    AGUIEventType,
+    AGUIInterrupt,
+    AGUIInterruptManager,
+    AGUIResume,
+    AGUIResumeError,
+    create_ag_ui_app,
+    expose_node_as_ag_ui,
+    last_user_text,
+)
 from agentlink.dlq import DeadLetter, DeadLetterQueue
 from agentlink.gateway import ProtocolGateway
 from agentlink.hub import HubClient, HubRegistry, HubServer
@@ -181,6 +195,19 @@ __all__ = [
     "agent_message_to_a2a_task",
     "a2a_task_to_agent_message",
     "ENVELOPE_METADATA_KEY",
+    # AG-UI v1.0 (agent → human)
+    "AGUI_PROTOCOL_VERSION",
+    "AGUIEventType",
+    "AGUIEmitter",
+    "AGUIInterrupt",
+    "AGUIInterruptManager",
+    "AGUIResume",
+    "AGUI_APPROVAL_SCHEMA",
+    "AGUIError",
+    "AGUIResumeError",
+    "create_ag_ui_app",
+    "expose_node_as_ag_ui",
+    "last_user_text",
 ]
 
 # Add A2A card verification exports if the optional extras are installed

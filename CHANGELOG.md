@@ -2,6 +2,63 @@
 
 All notable changes to AgentLink are documented in this file.
 
+## [0.10.0] - 2026-11-06
+
+### Added
+
+- **AG-UI 1.0 producer adapter** (`agentlink/adapters/ag_ui.py`) — the third
+  leg of the protocol stack: MCP connects agents to tools, A2A connects agents
+  to agents, AG-UI connects agents to the human in front of them.
+  - **`AGUIEmitter`** — spec-shaped events for a run: lifecycle
+    (`RUN_STARTED` / `RUN_FINISHED` / `RUN_ERROR` / `STEP_*`), text messages
+    (`TEXT_MESSAGE_START` / `_CONTENT` / `_END`), tool calls
+    (`TOOL_CALL_START` / `_ARGS` / `_END` / `_RESULT`), state
+    (`STATE_SNAPSHOT` / `STATE_DELTA` / `MESSAGES_SNAPSHOT`), reasoning, and
+    `RAW` / `CUSTOM`. The remaining 1.0 event types are reachable through
+    `emitter.emit(...)`. Message and tool-call ids are tracked across events;
+    invalid sequences (content before start, unknown tool calls) raise
+    `AGUIError`, while empty deltas are dropped because the spec forbids them.
+  - **Interrupt-based human-in-the-loop** — `AGUIInterruptManager` implements
+    the AG-UI pause/resume contract: `RUN_FINISHED` carries
+    `outcome={"type": "interrupt", "interrupts": [...]}` and the next run
+    resumes via `RunAgentInput["resume"]`. `resolve()` rejects unknown ids,
+    expired interrupts (`expiresAt`), invalid statuses, and payloads that
+    violate the declared `responseSchema` with `AGUIResumeError`.
+    `AGUI_APPROVAL_SCHEMA` provides the recommended approve/approve-with-edits
+    schema.
+  - **SSE transport** — `create_ag_ui_app(handler)` serves `POST /` with a
+    `text/event-stream` body (one `data:` frame per event), returns endpoint
+    metadata on `GET`, and answers `OPTIONS` CORS preflight. Accepts handlers
+    returning an event dict, a sync/async iterable of events, or an awaitable.
+  - **AgentLink bridge** — `expose_node_as_ag_ui(node)` wraps any `AgentNode`
+    into an AG-UI handler: the last user message becomes an AgentLink
+    `REQUEST`, iterable replies stream as `TEXT_MESSAGE_CONTENT`, and
+    pre-built event dicts yielded by the handler pass through untouched.
+    Errors surface as `RUN_ERROR`.
+  - New optional extra `agui` (`pip install cdzzy-agentlink[agui]`, aiohttp).
+    The emitter and interrupt manager are dependency-free.
+
+### Changed
+
+- **`AgentNode.invoke(message)`** — new public method that calls the
+  underlying handler directly, bypassing bus routing and reply normalisation.
+  Protocol adapters need the raw output (including generators), and previously
+  had to reach into `_handler`.
+- `agentlink/__init__.py` and `agentlink/adapters/__init__.py` export the
+  AG-UI surface (`AGUIEmitter`, `AGUIEventType`, `AGUIInterruptManager`,
+  `AGUIInterrupt`, `AGUIResume`, `AGUIError`, `AGUIResumeError`,
+  `AGUI_APPROVAL_SCHEMA`, `create_ag_ui_app`, `expose_node_as_ag_ui`,
+  `last_user_text`).
+- README (both languages) gained an "AG-UI" section and a roadmap entry.
+
+### Testing
+
+- 43 new tests (`tests/test_ag_ui.py`): emitter lifecycle/text/tool/state
+  events, interrupt outcome and resume validation (unknown, expired, schema
+  mismatch, cancelled), node bridge (streaming, async, pass-through, error),
+  and SSE transport (lifecycle frames, invalid input, mid-stream error,
+  metadata, CORS, custom path).
+
 ## [0.9.0] - 2026-11-01
 
 ### Added

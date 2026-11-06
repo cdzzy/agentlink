@@ -475,6 +475,91 @@ Requires `pip install cdzzy-agentlink[mcp]` (aiohttp).
 
 ---
 
+## Streaming Agents to Human Interfaces (AG-UI)
+
+MCP covers agent → tool and A2A covers agent → agent. The third leg is
+agent → human: [AG-UI](https://docs.ag-ui.com) 1.0, the event-stream protocol
+that CopilotKit, LangGraph Studio and custom frontends consume. AgentLink now
+implements the producer side.
+
+**One line to a streaming endpoint**
+
+```python
+from aiohttp import web
+from agentlink import AgentNode, create_ag_ui_app, expose_node_as_ag_ui
+
+node = AgentNode("assistant", lambda message: ["Thinking", " ...", " Done"])
+
+app = create_ag_ui_app(expose_node_as_ag_ui(node))
+web.run_app(app, port=8000)      # POST / with a RunAgentInput → SSE
+```
+
+Each chunk from an iterable-returning handler becomes `TEXT_MESSAGE_CONTENT`;
+`RUN_STARTED` / `TEXT_MESSAGE_START` / `RUN_FINISHED` are emitted around it.
+A handler that streams pre-built AG-UI event dicts keeps full control — those
+are passed through untouched.
+
+**Emit by hand** (steps, tool calls, state)
+
+```python
+from agentlink import AGUIEmitter
+
+emitter = AGUIEmitter(thread_id="t-1", run_id="r-1")
+yield emitter.run_started()
+yield emitter.step_started("retrieve")
+yield emitter.tool_call_start("search", "tc-1")
+yield emitter.tool_call_args('{"q": "agents"}', "tc-1")
+yield emitter.tool_call_end("tc-1")
+yield emitter.tool_call_result("3 results", "tc-1")
+yield emitter.step_finished("retrieve")
+start = emitter.text_message_start()
+yield start
+yield emitter.text_message_content("Here is the answer", start["messageId"])
+yield emitter.text_message_end()
+yield emitter.run_finished(result="Here is the answer")
+```
+
+`AGUIEmitter` covers lifecycle, text, tool-call, state (`STATE_SNAPSHOT` /
+`STATE_DELTA` / `MESSAGES_SNAPSHOT`), reasoning and special (`RAW` / `CUSTOM`)
+events; `emitter.emit(type, **payload)` reaches the rest of the 1.0 catalogue.
+Ids are tracked across events, and spec-violating calls (content before start,
+empty deltas, unknown tool calls) are rejected or dropped rather than emitted.
+
+**Human-in-the-loop (interrupts)**
+
+AG-UI pauses a run by finishing with an interrupt outcome; the next
+`RunAgentInput` resumes it:
+
+```python
+from agentlink import AGUI_APPROVAL_SCHEMA, AGUIInterruptManager
+
+manager = AGUIInterruptManager()
+interrupt = manager.create(
+    reason="tool_call",
+    message="Send this email to a@b.com?",
+    tool_call_id="tc-1",
+    response_schema=AGUI_APPROVAL_SCHEMA,   # {approved: bool, editedArgs?: object}
+)
+yield emitter.run_finished(outcome=manager.outcome())
+
+# Next run — RunAgentInput["resume"] from the client:
+manager.resolve({
+    "interruptId": interrupt.id,
+    "status": "resolved",                    # or "cancelled"
+    "payload": {"approved": True},
+})
+```
+
+`AGUIInterruptManager` enforces the contract that matters to a producer:
+unknown ids, expired interrupts (`expiresAt`), invalid statuses and payloads
+that violate the declared `responseSchema` all raise `AGUIResumeError` instead
+of resuming silently.
+
+Requires `pip install cdzzy-agentlink[agui]` (aiohttp) for the SSE endpoint;
+the emitter and interrupt manager have no dependencies.
+
+---
+
 ## Roadmap
 
 - [x] Async support (`async def` handlers) ✅ (examples/05_async_streaming.py)
@@ -491,6 +576,7 @@ Requires `pip install cdzzy-agentlink[mcp]` (aiohttp).
 - [x] **A2A v1.0 compatibility layer** (Agent Card `/.well-known/agent-card.json`, lossless AgentMessage ⇄ task/artifact mapping via `A2ATransport`, JWKS card signature verification) ✅ (agentlink/a2a/)
 - [x] **OpenTelemetry tracing integration** (`instrument_bus` — in-memory recorder or your OTel tracer) ✅ (v0.4.0)
 - [x] **Stream support for long-running tasks** (STREAM_START/CHUNK/END; `node.stream()` + iterable handlers) ✅ (v0.3.0)
+- [x] **AG-UI v1.0 producer** (`AGUIEmitter`, SSE transport, interrupt-based human approval, `expose_node_as_ag_ui`) ✅ (v0.10.0)
 - [ ] CLI: `agentlink serve`, `agentlink send`, `agentlink status`
 
 ---
