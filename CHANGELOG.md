@@ -2,6 +2,17 @@
 
 All notable changes to AgentLink are documented in this file.
 
+## [Unreleased]
+
+### Changed
+
+- **CI hardening**: upgrade all pinned GitHub Actions to current major
+  releases — `actions/checkout` v4→v7, `actions/setup-python` v5→v7,
+  `actions/upload-artifact` / `actions/download-artifact` v4→v7. The older
+  tags run on Node 20 runners that reached end-of-life and carry known
+  advisories; the new majors keep the workflows maintainable and secure.
+  No package behavior change.
+
 ## [0.10.0] - 2026-11-06
 
 ### Added
